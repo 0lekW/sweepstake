@@ -244,6 +244,11 @@
             .m-score { font-size: 1.15rem; font-weight: 700; }
             .m-kick { font-size: 0.78rem; color: var(--text-secondary); }
             .m-date { font-size: 0.66rem; color: var(--text-tertiary); margin-top: 0.1rem; }
+            /* live, in-progress match */
+            .match.live { border-color: color-mix(in srgb, var(--accent-success) 45%, var(--border-color)); background: color-mix(in srgb, var(--accent-success) 8%, var(--bg-secondary)); }
+            .m-live { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.12rem; font-family: var(--font-mono); font-size: 0.64rem; font-weight: 600; letter-spacing: 0.03em; color: var(--accent-success); }
+            .live-dot { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--accent-success); animation: livePulse 1.4s ease-in-out infinite; }
+            @keyframes livePulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-success) 65%, transparent); } 50% { opacity: 0.45; box-shadow: 0 0 0 4px transparent; } }
 
             /* Draft cards */
             .draft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.9rem; }
@@ -797,16 +802,31 @@
                                  ev.intAwayScore !== null && ev.intAwayScore !== '';
         const matchRow = ev => hasScoreEv(ev) ? scoreMatch(ev) : timeMatch(ev);
 
+        // a live, in-progress match: current score + minute/status, with a pulsing dot
+        function liveText(ev) {
+            const s = (ev.liveLabel || ev.strStatus || 'LIVE').toString().toUpperCase();
+            return s || 'LIVE';
+        }
+        function liveMatch(ev) {
+            return `<div class="match live">
+                ${teamSide(ev.strHomeTeam,'home')}
+                <div class="m-mid"><div class="m-score">${ev.intHomeScore ?? 0}&ndash;${ev.intAwayScore ?? 0}</div><div class="m-live"><span class="live-dot"></span>${liveText(ev)}</div></div>
+                ${teamSide(ev.strAwayTeam,'away')}
+            </div>`;
+        }
+
         // module state for the fixtures widget
-        const FIX = { completed: [], upcoming: [], todayDone: [] };
+        const FIX = { completed: [], upcoming: [], todayDone: [], live: [] };
 
         // ----- Fixtures tab: today's results flow straight into upcoming, one feed -----
         function renderFixtures() {
             const el = document.getElementById('tab-fixtures');
-            const feed = [...FIX.todayDone, ...FIX.upcoming]
-                .sort((a,b) => (prettyDate(a).ms||0) - (prettyDate(b).ms||0));
-            el.innerHTML = feed.length
-                ? `<div class="matches" id="fixList">${feed.map(matchRow).join('')}</div>`
+            const byTime = (a,b) => (prettyDate(a).ms||0) - (prettyDate(b).ms||0);
+            const live = (FIX.live || []).slice().sort(byTime);
+            const feed = [...FIX.todayDone, ...FIX.upcoming].sort(byTime);
+            const html = live.map(liveMatch).join('') + feed.map(matchRow).join('');
+            el.innerHTML = (live.length || feed.length)
+                ? `<div class="matches" id="fixList">${html}</div>`
                 : `<div class="state-msg">No fixtures available right now.</div>`;
             fitFixtures();
         }
@@ -1196,6 +1216,53 @@
             return r.json();
         }
 
+        // Primary match source: homelab FotMob feed (status, score, live minute).
+        const FIX_URL = 'https://odds.olek.co.nz/fixtures.json';
+        let _finishedSig = null;
+
+        // Render everything that depends on match data. History is only rebuilt when the
+        // finished results actually change, so live polling doesn't reset its filters.
+        function renderAfterData() {
+            renderForm(FIX.completed);
+            renderFixtures();
+            const sig = FIX.completed.map(e => `${e.idEvent}:${e.intHomeScore}-${e.intAwayScore}`).join('|');
+            if (sig !== _finishedSig) { renderHistory(); _finishedSig = sig; }
+            refreshStatsIfOpen();
+        }
+
+        async function loadFixtures() {
+            try {
+                const r = await fetch(FIX_URL, { cache: 'no-store' });
+                if (!r.ok) throw new Error(r.status);
+                const data = await r.json();
+                if (!data || !Array.isArray(data.matches)) throw new Error('bad feed');
+                const byTime = (a, b) => (prettyDate(a).ms || 0) - (prettyDate(b).ms || 0);
+                const finished = data.matches.filter(m => m.state === 'finished').sort((a, b) => byTime(b, a));
+                const upcoming = data.matches.filter(m => m.state === 'upcoming').sort(byTime);
+                const live = data.matches.filter(m => m.state === 'live').sort(byTime);
+                const now = new Date();
+                const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                FIX.completed = finished;
+                FIX.upcoming = upcoming;
+                FIX.live = live;
+                FIX.todayDone = finished.filter(ev => (prettyDate(ev).ms || 0) >= startToday);
+                renderAfterData();
+                document.getElementById('updated').textContent =
+                    `Updated ${new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}` +
+                    (live.length ? ` · ${live.length} live` : '');
+                return true;
+            } catch (e) {
+                console.warn('[fixtures] homelab feed unavailable:', e.message);
+                return false;
+            }
+        }
+
+        // poll for live updates while the tab is visible (homelab itself polls FotMob faster when live)
+        function startFixturesPolling() {
+            setInterval(() => { if (!document.hidden) loadFixtures(); }, 45000);
+        }
+
+        // FALLBACK match source: TheSportsDB (used only if the homelab feed is down; no live support).
         async function loadLive() {
             // Group matchdays 1-3 (eventsround) cover the whole group stage with real
             // team names; past/next/season fill in recent results and any extras.
@@ -1220,7 +1287,7 @@
 
             if (!all.length) {
                 document.getElementById('updated').textContent = 'Live match data unavailable right now — odds & draft are always up to date.';
-                renderForm([]); FIX.completed = []; FIX.upcoming = []; FIX.todayDone = []; renderStrip();
+                FIX.completed = []; FIX.upcoming = []; FIX.todayDone = []; FIX.live = []; renderAfterData();
                 return;
             }
 
@@ -1239,9 +1306,9 @@
             FIX.completed = completed;   // every completed match (History + form table)
             FIX.upcoming = upcoming;
             FIX.todayDone = todayDone;
+            FIX.live = [];               // TheSportsDB fallback has no live data
 
-            renderForm(completed);       // form table uses ALL completed matches
-            renderStrip();               // Fixtures (today's done + upcoming) + History
+            renderAfterData();
 
             document.getElementById('updated').textContent =
                 `Loaded ${new Date().toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`;
@@ -1338,11 +1405,13 @@
         renderOdds();
         renderDraft();
         loadOdds();
-        loadLive().catch(err => {
+        // match data: homelab FotMob feed first; fall back to TheSportsDB if it's unreachable
+        loadFixtures().then(ok => { if (!ok) return loadLive(); }).catch(err => {
             console.error(err);
-            document.getElementById('updated').textContent = 'Live match data unavailable right now — odds & draft are always up to date.';
-            renderForm([]); FIX.completed = []; FIX.upcoming = []; FIX.todayDone = []; renderStrip();
+            document.getElementById('updated').textContent = 'Match data unavailable right now — odds & draft are always up to date.';
+            FIX.completed = []; FIX.upcoming = []; FIX.todayDone = []; FIX.live = []; renderAfterData();
         }).finally(loadHighlights);
+        startFixturesPolling();
         </script>
     </body>
 </html>
