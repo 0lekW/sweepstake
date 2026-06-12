@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang=en>
+    <head>
+        <meta charset="utf-8">
+        <meta name=viewport content="width=device-width,initial-scale=1">
+        <meta name=description content="World Cup 2026 Sweepstake - live standings, fixtures and odds">
+        <meta name=author content="Alex Wardega">
+        <title>World Cup 2026 Sweepstake</title>
+        <link rel="icon" type="image/x-icon" href="/images/assets/favicon.ico">
+        <link rel=stylesheet href="/assets/style.css" type=text/css media=all>
+        <style>
+            /* ---- Sweepstake dashboard, built on the site's own variables & fonts ---- */
+            .sweep-wrap {
+                max-width: 84rem;
+                margin: 2.5rem auto 4rem;
+                padding: 0 1rem;
+            }
+
+            .sweep-head {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: 0.5rem 1.5rem;
+                border-bottom: 1px solid var(--border-color);
+                padding-bottom: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .sweep-head h1 { margin: 0; font-size: 2rem; font-family: var(--font-sans); }
+            .sweep-head .tag { color: var(--text-secondary); font-size: 0.95rem; margin: 0.3rem 0 0; }
+            .sweep-head .meta { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-tertiary); }
+
+            /* Layout: a tall fixtures strip on the left (~1/3), stacked panels on the right (~2/3) */
+            .layout {
+                display: grid;
+                grid-template-columns: minmax(15rem, 1fr) 2fr;
+                gap: 1.25rem;
+                align-items: start;
+            }
+            .strip { grid-column: 1; grid-row: 1; }
+            .main-col {
+                grid-column: 2; grid-row: 1;
+                display: flex; flex-direction: column; gap: 1.25rem;
+                min-width: 0;
+            }
+            @media (max-width: 860px) {
+                .layout { grid-template-columns: 1fr; }
+                .strip, .main-col { grid-column: 1; grid-row: auto; }
+            }
+
+            /* Tabs inside the fixtures widget */
+            .tabs {
+                display: flex;
+                gap: 1.1rem;
+                border-bottom: 1px solid var(--border-color);
+                margin-bottom: 0.9rem;
+            }
+            .tab {
+                background: none; border: none; cursor: pointer;
+                font-family: var(--font-sans); font-size: 1.1rem; font-weight: 600;
+                color: var(--text-tertiary);
+                padding: 0 0 0.5rem; margin: 0;
+                border-bottom: 2px solid transparent;
+                transition: color var(--transition-fast);
+            }
+            .tab:hover { color: var(--text-secondary); }
+            .tab.active { color: var(--text-primary); border-bottom-color: var(--accent-primary); }
+
+            /* History filters */
+            .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.6rem; }
+            .filters select {
+                background: var(--bg-secondary);
+                color: var(--text-primary);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-sm);
+                padding: 0.35rem 0.5rem;
+                font-family: var(--font-mono);
+                font-size: 0.76rem;
+                cursor: pointer;
+            }
+            .hcount { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-tertiary); margin-bottom: 0.5rem; }
+            .hist-scroll { max-height: 32rem; overflow-y: auto; padding-right: 0.2rem; }
+            .hist-scroll::-webkit-scrollbar { width: 7px; }
+            .hist-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
+
+            .panel {
+                background: var(--bg-card);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-md);
+                padding: 1.1rem 1.15rem;
+                min-width: 0;
+            }
+            .panel.span { grid-column: 1 / -1; }
+            .panel-head { margin-bottom: 0.9rem; }
+            .panel-head h2 { margin: 0; font-size: 1.15rem; font-family: var(--font-sans); font-weight: 600; }
+            .panel-head .blurb { color: var(--text-tertiary); font-size: 0.82rem; margin: 0.3rem 0 0; line-height: 1.45; }
+
+            /* Top summary: a podium of the 3 most likely, plus the chasing pack */
+            .summary-panel { margin-bottom: 1.25rem; }
+            .summary-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin-bottom: 0.9rem; }
+            .summary-head h2 { margin: 0; font-size: 1.05rem; font-family: var(--font-sans); font-weight: 600; }
+            .head-time { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 400; color: var(--text-tertiary); margin-left: 0.4rem; }
+            .summary-link { background: none; border: none; cursor: pointer; font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-tertiary); padding: 0; }
+            .summary-link:hover { color: var(--text-secondary); }
+
+            .podium-layout { display: flex; gap: 1.75rem; align-items: flex-end; }
+            @media (max-width: 640px) { .podium-layout { flex-direction: column; align-items: stretch; gap: 1.1rem; } }
+
+            .podium { display: flex; align-items: flex-end; justify-content: center; gap: 0.6rem; flex: 0 0 auto; }
+            .place { display: flex; flex-direction: column; align-items: center; width: 5.5rem; }
+            .pl-label { text-align: center; margin-bottom: 0.4rem; line-height: 1.2; }
+            .pl-name { display: block; font-weight: 600; font-size: 0.82rem; }
+            .pl-pct { display: block; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-secondary); }
+            .pl-block {
+                width: 100%; border-radius: 7px 7px 0 0;
+                display: flex; align-items: flex-end; justify-content: center;
+                box-shadow: inset 0 -2px 10px rgba(0,0,0,0.28);
+            }
+            .place.p1 .pl-block { height: 6.8rem; }
+            .place.p2 .pl-block { height: 5.1rem; }
+            .place.p3 .pl-block { height: 4.1rem; }
+            .pl-rank { font-family: var(--font-mono); font-weight: 700; font-size: 1.7rem; color: rgba(255,255,255,0.9); margin-bottom: 0.35rem; text-shadow: 0 1px 3px rgba(0,0,0,0.45); }
+
+            .chasers { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 0.4rem; }
+            .chasers-head { font-family: var(--font-mono); font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-tertiary); margin-bottom: 0.15rem; }
+            .chaser { display: grid; grid-template-columns: 1.2rem 6rem 1fr 3rem; align-items: center; gap: 0.55rem; }
+            .chaser .crank { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-tertiary); text-align: center; }
+            .chaser .cname { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .chaser .cbar { height: 6px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+            .chaser .cbar > div { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+            .chaser .cpct { font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-secondary); text-align: right; }
+
+            /* Full breakdown: one column per person (best first), teams + odds going down */
+            .breakdown { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(8rem, 1fr); gap: 0.6rem; overflow-x: auto; padding-bottom: 0.4rem; }
+            .bd-col {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-top: 3px solid var(--p-color, #888);
+                border-radius: var(--radius-sm);
+                padding: 0.6rem 0.55rem;
+                min-width: 0;
+            }
+            .bd-head { text-align: center; padding-bottom: 0.45rem; margin-bottom: 0.4rem; border-bottom: 1px solid var(--border-color); }
+            .bd-rank { font-family: var(--font-mono); font-size: 0.64rem; color: var(--text-tertiary); }
+            .bd-name { font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem; white-space: nowrap; overflow: hidden; }
+            .bd-name .dot { width: 0.55rem; height: 0.55rem; }
+            .bd-pct { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-top: 0.1rem; }
+            .bd-team { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.35rem; padding: 0.3rem 0; }
+            .bd-team + .bd-team { border-top: 1px solid var(--border-color); }
+            .bd-tn { font-size: 0.74rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .bd-odds { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-tertiary); white-space: nowrap; }
+
+            /* Leaderboards */
+            .board { display: flex; flex-direction: column; gap: 0.4rem; }
+            .lb-row {
+                display: grid;
+                grid-template-columns: 1.6rem 1fr auto;
+                align-items: center;
+                gap: 0.7rem;
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-sm);
+                padding: 0.55rem 0.7rem;
+            }
+            .lb-row.leader { border-color: rgba(252,211,77,0.45); }
+            .lb-rank { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 500; color: var(--text-tertiary); text-align: center; }
+            .lb-main { min-width: 0; }
+            .lb-name { font-weight: 600; display: flex; align-items: center; gap: 0.5rem; font-size: 0.98rem; }
+            .lb-sub { font-size: 0.74rem; color: var(--text-tertiary); margin-top: 0.15rem; font-family: var(--font-mono); }
+            .lb-bar-track { margin-top: 0.4rem; height: 6px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+            .lb-bar-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+            .lb-figure { font-family: var(--font-mono); font-weight: 600; font-size: 1.05rem; text-align: right; white-space: nowrap; }
+            .lb-figure small { display: block; font-size: 0.64rem; font-weight: 400; color: var(--text-tertiary); }
+
+            .dot { width: 0.65rem; height: 0.65rem; border-radius: 50%; flex: 0 0 auto; }
+            .lead-pill {
+                font-family: var(--font-mono); font-size: 0.58rem; font-weight: 600;
+                letter-spacing: 0.08em; text-transform: uppercase;
+                color: #fcd34d; border: 1px solid rgba(252,211,77,0.4);
+                padding: 0.05rem 0.35rem; border-radius: 99px;
+            }
+
+            /* Match feed in the left strip runs full length down the page */
+            .matches { display: flex; flex-direction: column; gap: 0.4rem; }
+            .match {
+                display: grid;
+                grid-template-columns: 1fr auto 1fr;
+                align-items: center;
+                gap: 0.6rem;
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius-sm);
+                padding: 0.55rem 0.7rem;
+            }
+            .m-team { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+            .m-team.away { flex-direction: row-reverse; text-align: right; }
+            .m-team .tn { display: flex; flex-direction: column; min-width: 0; }
+            .m-team .tn b { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .m-owner { font-size: 0.7rem; font-family: var(--font-mono); display: inline-flex; align-items: center; gap: 0.3rem; color: var(--text-secondary); }
+            .m-team.away .m-owner { flex-direction: row-reverse; }
+            .flag { width: 28px; height: 19px; border-radius: 3px; object-fit: cover; flex: 0 0 auto; box-shadow: 0 0 0 1px rgba(255,255,255,0.08); background: #222; }
+            .flag.sm { width: 22px; height: 15px; }
+            .m-mid { text-align: center; font-family: var(--font-mono); white-space: nowrap; }
+            .m-score { font-size: 1.15rem; font-weight: 700; }
+            .m-kick { font-size: 0.78rem; color: var(--text-secondary); }
+            .m-date { font-size: 0.66rem; color: var(--text-tertiary); margin-top: 0.1rem; }
+
+            /* Draft cards */
+            .draft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.9rem; }
+            .person-card {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-top: 3px solid var(--p-color, #888);
+                border-radius: var(--radius-sm);
+                padding: 0.8rem 0.9rem;
+            }
+            .person-card h3 { margin: 0 0 0.6rem; display: flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; font-family: var(--font-sans); }
+            .person-card .pc-sub { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-tertiary); margin: 0 0 0.6rem; }
+            .team-row {
+                display: grid;
+                grid-template-columns: auto 1fr auto auto;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.32rem 0;
+                border-top: 1px solid var(--border-color);
+            }
+            .team-row .tr-name { font-size: 0.88rem; }
+            .tier-badge {
+                font-size: 0.6rem; font-family: var(--font-mono); font-weight: 600;
+                padding: 0.1rem 0.38rem; border-radius: 99px; letter-spacing: 0.03em;
+                text-transform: uppercase; white-space: nowrap;
+            }
+            .tier-Winners { background: rgba(252,211,77,0.15); color: #fcd34d; }
+            .tier-Good { background: rgba(59,130,246,0.15); color: #60a5fa; }
+            .tier-Bad { background: rgba(255,255,255,0.07); color: var(--text-tertiary); }
+            .tr-odds { font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-tertiary); white-space: nowrap; }
+
+            .legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; font-size: 0.76rem; color: var(--text-tertiary); margin-top: 0.3rem; font-family: var(--font-mono); }
+            .legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+            .state-msg {
+                border: 1px dashed var(--border-color);
+                border-radius: var(--radius-sm);
+                padding: 1.1rem;
+                text-align: center;
+                color: var(--text-tertiary);
+                font-family: var(--font-mono);
+                font-size: 0.85rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="particles-js"></div>
+
+        <main class="sweep-wrap">
+            <header class="sweep-head">
+                <div>
+                    <h1>World Cup 2026 Sweepstake</h1>
+                </div>
+                <div class="meta" id="updated">Loading live data&hellip;</div>
+            </header>
+
+            <section class="panel summary-panel">
+                <div class="summary-head">
+                    <h2>Bookies Odds <span class="head-time" id="oddsBarTime"></span></h2>
+                    <button class="summary-link" id="toFullOdds">Full breakdown</button>
+                </div>
+                <div id="oddsBar"></div>
+            </section>
+
+            <div class="layout">
+                <!-- RIGHT (desktop) / FIRST (mobile): stacked panels, most-wanted first.
+                     Placed in grid column 2 on desktop via CSS; appears first in source so
+                     the draft leads on narrow screens. -->
+                <div class="main-col">
+                    <section class="panel">
+                        <div class="panel-head">
+                            <h2>Draft</h2>
+                            <div class="legend">
+                                <span><span class="tier-badge tier-Winners">Winners</span> top pot</span>
+                                <span><span class="tier-badge tier-Good">Good</span> middle pot</span>
+                                <span><span class="tier-badge tier-Bad">Bad</span> bottom pot</span>
+                            </div>
+                        </div>
+                        <div class="draft-grid" id="draft"></div>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-head">
+                            <h2>Group Stage Leaderboard</h2>
+                        </div>
+                        <div class="board" id="formBoard"></div>
+                    </section>
+                </div>
+
+                <!-- LEFT (desktop): tall fixtures strip, placed in grid column 1 -->
+                <aside class="strip">
+                    <section class="panel">
+                        <div class="tabs">
+                            <button class="tab active" data-tab="fixtures">Fixtures</button>
+                            <button class="tab" data-tab="history">History</button>
+                        </div>
+                        <div id="tab-fixtures" class="tab-pane"></div>
+                        <div id="tab-history" class="tab-pane" hidden></div>
+                    </section>
+                </aside>
+            </div>
+
+            <section class="panel" id="oddsPanel" style="margin-top:1.25rem;">
+                <div class="panel-head">
+                    <h2>Bookmakers' sweep odds</h2>
+                    <p class="blurb">Everyone's combined chance of owning the champion (left to right, best first), and the individual odds of each of their teams. Normalised across all 48 teams.</p>
+                    <p class="blurb" id="oddsUpdated" style="margin-top:0.35rem;">Odds as of 12 Jun 2026.</p>
+                </div>
+                <div class="breakdown" id="oddsBoard"></div>
+            </section>
+        </main>
+
+        <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+        <script src="/assets/particles-init.js"></script>
+
+        <script>
+        // ============================================================
+        //  SWEEPSTAKE DATA  (fixed roster + bookmaker odds)
+        // ============================================================
+        const PEOPLE = {
+            Roenan:  '#ef4444',
+            Shanae:  '#f59e0b',
+            Alex:    '#3b82f6',
+            Ollie:   '#10b981',
+            Matt:    '#8b5cf6',
+            Juliane: '#ec4899',
+            Jamie:   '#14b8a6',
+            Juice:   '#f97316',
+        };
+
+        // name, owner, tier, flag code (for flagcdn), aliases (extra names the odds feed may use).
+        // Odds are NOT stored here — they come only from the live feed (loadOdds). No fallback.
+        const TEAMS = [
+            // Winners pot
+            { name:'France',       owner:'Roenan',  tier:'Winners', code:'fr' },
+            { name:'Spain',        owner:'Shanae',  tier:'Winners', code:'es' },
+            { name:'Argentina',    owner:'Alex',    tier:'Winners', code:'ar' },
+            { name:'Brazil',       owner:'Ollie',   tier:'Winners', code:'br' },
+            { name:'Germany',      owner:'Matt',    tier:'Winners', code:'de' },
+            { name:'England',      owner:'Juliane', tier:'Winners', code:'gb-eng' },
+            { name:'Portugal',     owner:'Jamie',   tier:'Winners', code:'pt' },
+            { name:'Netherlands',  owner:'Juice',   tier:'Winners', code:'nl' },
+            // Good pot
+            { name:'Morocco',      owner:'Juice',   tier:'Good', code:'ma' },
+            { name:'Belgium',      owner:'Ollie',   tier:'Good', code:'be' },
+            { name:'Croatia',      owner:'Juliane', tier:'Good', code:'hr' },
+            { name:'Colombia',     owner:'Jamie',   tier:'Good', code:'co', aliases:['columbia'] },
+            { name:'Senegal',      owner:'Matt',    tier:'Good', code:'sn' },
+            { name:'Japan',        owner:'Alex',    tier:'Good', code:'jp' },
+            { name:'Switzerland',  owner:'Roenan',  tier:'Good', code:'ch' },
+            { name:'Norway',       owner:'Shanae',  tier:'Good', code:'no' },
+            // Bad pot
+            { name:'Canada',       owner:'Ollie',   tier:'Bad', code:'ca' },
+            { name:'USA',          owner:'Alex',    tier:'Bad', code:'us', aliases:['united states','usa'] },
+            { name:'Mexico',       owner:'Ollie',   tier:'Bad', code:'mx' },
+            { name:'Algeria',      owner:'Roenan',  tier:'Bad', code:'dz' },
+            { name:'Australia',    owner:'Roenan',  tier:'Bad', code:'au' },
+            { name:'Austria',      owner:'Juice',   tier:'Bad', code:'at' },
+            { name:'Bosnia',       owner:'Matt',    tier:'Bad', code:'ba', aliases:['bosnia and herzegovina','bosnia herzegovina'] },
+            { name:'Cape Verde',   owner:'Shanae',  tier:'Bad', code:'cv', aliases:['cabo verde'] },
+            { name:'DR Congo',     owner:'Jamie',   tier:'Bad', code:'cd', aliases:['congo dr','democratic republic of congo','congo democratic republic'] },
+            { name:'Ivory Coast',  owner:'Juliane', tier:'Bad', code:'ci', aliases:['cote divoire','cote d ivoire'] },
+            { name:'Curaçao',      owner:'Jamie',   tier:'Bad', code:'cw', aliases:['curacao'] },
+            { name:'Czechia',      owner:'Shanae',  tier:'Bad', code:'cz', aliases:['czech republic'] },
+            { name:'Ecuador',      owner:'Juliane', tier:'Bad', code:'ec' },
+            { name:'Egypt',        owner:'Juice',   tier:'Bad', code:'eg' },
+            { name:'Haiti',        owner:'Juliane', tier:'Bad', code:'ht' },
+            { name:'Ghana',        owner:'Roenan',  tier:'Bad', code:'gh' },
+            { name:'Iran',         owner:'Jamie',   tier:'Bad', code:'ir' },
+            { name:'Iraq',         owner:'Juliane', tier:'Bad', code:'iq' },
+            { name:'Jordan',       owner:'Ollie',   tier:'Bad', code:'jo' },
+            { name:'South Korea',  owner:'Roenan',  tier:'Bad', code:'kr', aliases:['korea republic','korea','republic of korea'] },
+            { name:'New Zealand',  owner:'Juice',   tier:'Bad', code:'nz' },
+            { name:'Panama',       owner:'Ollie',   tier:'Bad', code:'pa' },
+            { name:'Paraguay',     owner:'Juice',   tier:'Bad', code:'py' },
+            { name:'Qatar',        owner:'Alex',    tier:'Bad', code:'qa' },
+            { name:'Saudi Arabia', owner:'Matt',    tier:'Bad', code:'sa' },
+            { name:'Scotland',     owner:'Shanae',  tier:'Bad', code:'gb-sct' },
+            { name:'Uruguay',      owner:'Shanae',  tier:'Bad', code:'uy' },
+            { name:'South Africa', owner:'Matt',    tier:'Bad', code:'za' },
+            { name:'Sweden',       owner:'Alex',    tier:'Bad', code:'se' },
+            { name:'Tunisia',      owner:'Matt',    tier:'Bad', code:'tn' },
+            { name:'Turkey',       owner:'Alex',    tier:'Bad', code:'tr', aliases:['turkiye'] },
+            { name:'Uzbekistan',   owner:'Jamie',   tier:'Bad', code:'uz', aliases:['uzbek'] },
+        ];
+
+        let oddsReady = false;    // true only once the live feed loads — there is no fallback
+        let oddsErrored = false;
+
+        const TIER_ORDER = { Winners:0, Good:1, Bad:2 };
+        const flagUrl = code => `https://flagcdn.com/w40/${code}.png`;
+
+        // ---- name matching helpers ----
+        const normalize = s => (s||'')
+            .normalize('NFD').replace(/[̀-ͯ]/g,'')   // strip accents
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g,' ')
+            .trim();
+
+        const NAME_LOOKUP = {};
+        for (const t of TEAMS) {
+            NAME_LOOKUP[normalize(t.name)] = t;
+            for (const a of (t.aliases||[])) NAME_LOOKUP[normalize(a)] = t;
+        }
+        const findTeam = apiName => NAME_LOOKUP[normalize(apiName)] || null;
+
+        // ============================================================
+        //  RENDER: odds-based win probability
+        // ============================================================
+        function renderOdds() {
+            if (!oddsReady) {
+                const msg = oddsErrored
+                    ? `<div class="state-msg">Couldn&rsquo;t reach the odds feed &mdash; something&rsquo;s wrong.</div>`
+                    : `<div class="state-msg">Loading bookmaker odds&hellip;</div>`;
+                document.getElementById('oddsBar').innerHTML = msg;
+                document.getElementById('oddsBoard').innerHTML = msg;
+                return;
+            }
+            const raw = TEAMS.map(t => t.dec ? 1 / t.dec : 0);
+            const total = raw.reduce((a,b) => a+b, 0);
+            const prob = {};
+            TEAMS.forEach((t,i) => prob[t.name] = raw[i] / total);
+
+            const perPerson = {};
+            for (const p in PEOPLE) perPerson[p] = { p:0, best:null, bestP:0 };
+            for (const t of TEAMS) {
+                const pr = prob[t.name];
+                perPerson[t.owner].p += pr;
+                if (pr > perPerson[t.owner].bestP) { perPerson[t.owner].bestP = pr; perPerson[t.owner].best = t; }
+            }
+            const rows = Object.entries(perPerson).sort((a,b) => b[1].p - a[1].p);
+            const max = rows[0][1].p;
+
+            // top-3 podium + chasing pack (driven by the same win-probabilities)
+            const medalCol = ['#fcd34d', '#cbd5e1', '#d6995a']; // gold / silver / bronze
+            const place = (entry, rank, cls) => entry ? `
+                <div class="place ${cls}">
+                    <div class="pl-label"><span class="pl-name">${entry[0]}</span><span class="pl-pct">${(entry[1].p*100).toFixed(1)}%</span></div>
+                    <div class="pl-block" style="background:${PEOPLE[entry[0]]};border-top:4px solid ${medalCol[rank-1]}">
+                        <span class="pl-rank">${rank}</span>
+                    </div>
+                </div>` : '';
+            const podium = `<div class="podium">${place(rows[1],2,'p2')}${place(rows[0],1,'p1')}${place(rows[2],3,'p3')}</div>`;
+            const chasers = rows.slice(3).map(([name,d],i) => `
+                <div class="chaser">
+                    <span class="crank">${i+4}</span>
+                    <span class="cname"><span class="dot" style="background:${PEOPLE[name]}"></span>${name}</span>
+                    <div class="cbar"><div style="width:${(d.p/max*100).toFixed(0)}%;background:${PEOPLE[name]}"></div></div>
+                    <span class="cpct">${(d.p*100).toFixed(1)}%</span>
+                </div>`).join('');
+            document.getElementById('oddsBar').innerHTML =
+                `<div class="podium-layout">${podium}<div class="chasers"><div class="chasers-head">In the hunt</div>${chasers}</div></div>`;
+
+            // full breakdown: a column per person (best first), their teams + odds below
+            const teamsByOwner = {};
+            for (const p in PEOPLE) teamsByOwner[p] = [];
+            for (const t of TEAMS) teamsByOwner[t.owner].push(t);
+
+            document.getElementById('oddsBoard').innerHTML = rows.map(([name,d],i) => {
+                const ts = teamsByOwner[name].slice().sort((a,b) => (a.dec||1e9) - (b.dec||1e9));
+                return `<div class="bd-col" style="--p-color:${PEOPLE[name]}">
+                    <div class="bd-head">
+                        <div class="bd-rank">#${i+1}</div>
+                        <div class="bd-name"><span class="dot" style="background:${PEOPLE[name]}"></span>${name}</div>
+                        <div class="bd-pct">${(d.p*100).toFixed(1)}%</div>
+                    </div>
+                    ${ts.map(t => `<div class="bd-team">
+                        <img class="flag sm" src="${flagUrl(t.code)}" alt="" loading="lazy">
+                        <span class="bd-tn">${t.name}</span>
+                        <span class="bd-odds">${t.odds || 'N/A'}</span>
+                    </div>`).join('')}
+                </div>`;
+            }).join('');
+        }
+
+        // ============================================================
+        //  RENDER: helpers for match rows
+        // ============================================================
+        function ownerBadge(team) {
+            if (!team) return '';
+            return `<span class="m-owner"><span class="dot" style="width:0.5rem;height:0.5rem;background:${PEOPLE[team.owner]}"></span>${team.owner}</span>`;
+        }
+        function teamSide(apiName, side) {
+            const t = findTeam(apiName);
+            const disp = t ? t.name : apiName;
+            const flag = t ? `<img class="flag" src="${flagUrl(t.code)}" alt="" loading="lazy">` : `<span class="flag"></span>`;
+            return `<div class="m-team ${side}">${flag}<div class="tn"><b>${disp}</b>${ownerBadge(t)}</div></div>`;
+        }
+        function prettyDate(ev) {
+            const ts = ev.strTimestamp || (ev.dateEvent ? ev.dateEvent + 'T' + (ev.strTime||'00:00:00') : null);
+            if (!ts) return { d:'', t:'' };
+            const dt = new Date(ts.endsWith('Z')||ts.includes('+') ? ts : ts + 'Z');
+            if (isNaN(dt)) return { d: ev.dateEvent||'', t:'' };
+            return {
+                d: dt.toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short' }),
+                t: dt.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' }),
+                ms: dt.getTime()
+            };
+        }
+
+        // ============================================================
+        //  RENDER: form table from completed results
+        // ============================================================
+        function renderForm(completed) {
+            const tbl = {};
+            for (const p in PEOPLE) tbl[p] = { pts:0, P:0, W:0, D:0, L:0, GF:0, GA:0 };
+
+            function record(team, gf, ga) {
+                if (!team) return;
+                const r = tbl[team.owner];
+                r.P++; r.GF += gf; r.GA += ga;
+                if (gf > ga) { r.W++; r.pts += 3; }
+                else if (gf === ga) { r.D++; r.pts += 1; }
+                else { r.L++; }
+            }
+            for (const ev of completed) {
+                const h = findTeam(ev.strHomeTeam), a = findTeam(ev.strAwayTeam);
+                const hs = Number(ev.intHomeScore), as = Number(ev.intAwayScore);
+                record(h, hs, as);
+                record(a, as, hs);
+            }
+
+            const rows = Object.entries(tbl).sort((x,y) =>
+                y[1].pts - x[1].pts || (y[1].GF-y[1].GA)-(x[1].GF-x[1].GA) || y[1].GF - x[1].GF);
+            const anyPlayed = rows.some(r => r[1].P > 0);
+            const board = document.getElementById('formBoard');
+            if (!anyPlayed) { board.innerHTML = `<div class="state-msg">No completed matches yet &mdash; check back once the action kicks off.</div>`; return; }
+
+            const max = Math.max(1, rows[0][1].pts);
+            board.innerHTML = rows.map(([name,r],i) => `
+                <div class="lb-row${i===0&&r.pts>0?' leader':''}">
+                    <div class="lb-rank">${i+1}</div>
+                    <div class="lb-main">
+                        <div class="lb-name"><span class="dot" style="background:${PEOPLE[name]}"></span>${name}${i===0&&r.pts>0?' <span class="lead-pill">Leader</span>':''}</div>
+                        <div class="lb-sub">${r.P} played &middot; ${r.W}W ${r.D}D ${r.L}L &middot; ${r.GF}:${r.GA} goals</div>
+                        <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${(r.pts/max*100).toFixed(0)}%;background:${PEOPLE[name]}"></div></div>
+                    </div>
+                    <div class="lb-figure">${r.pts}<small>pts</small></div>
+                </div>`).join('');
+        }
+
+        // ============================================================
+        //  RENDER: left strip = recent (today/yesterday) + upcoming
+        // ============================================================
+        function scoreMatch(ev) {
+            const d = prettyDate(ev);
+            return `<div class="match">
+                ${teamSide(ev.strHomeTeam,'home')}
+                <div class="m-mid"><div class="m-score">${ev.intHomeScore}&ndash;${ev.intAwayScore}</div><div class="m-date">${d.d}</div></div>
+                ${teamSide(ev.strAwayTeam,'away')}
+            </div>`;
+        }
+        function timeMatch(ev) {
+            const d = prettyDate(ev);
+            return `<div class="match">
+                ${teamSide(ev.strHomeTeam,'home')}
+                <div class="m-mid"><div class="m-kick">${d.t||'TBD'}</div><div class="m-date">${d.d}</div></div>
+                ${teamSide(ev.strAwayTeam,'away')}
+            </div>`;
+        }
+        const twoCol = () => window.matchMedia('(min-width: 861px)').matches;
+        const hasScoreEv = ev => ev.intHomeScore !== null && ev.intHomeScore !== '' &&
+                                 ev.intAwayScore !== null && ev.intAwayScore !== '';
+        const matchRow = ev => hasScoreEv(ev) ? scoreMatch(ev) : timeMatch(ev);
+
+        // module state for the fixtures widget
+        const FIX = { completed: [], upcoming: [], todayDone: [] };
+
+        // ----- Fixtures tab: today's results flow straight into upcoming, one feed -----
+        function renderFixtures() {
+            const el = document.getElementById('tab-fixtures');
+            const feed = [...FIX.todayDone, ...FIX.upcoming]
+                .sort((a,b) => (prettyDate(a).ms||0) - (prettyDate(b).ms||0));
+            el.innerHTML = feed.length
+                ? `<div class="matches" id="fixList">${feed.map(matchRow).join('')}</div>`
+                : `<div class="state-msg">No fixtures available right now.</div>`;
+            fitFixtures();
+        }
+
+        // Trim the feed on desktop so the strip ends level with the right column.
+        function fitFixtures() {
+            const list = document.getElementById('fixList');
+            const main = document.querySelector('.main-col');
+            const aside = document.querySelector('.strip');
+            if (!twoCol() || !list || !main || document.getElementById('tab-fixtures').hidden) return;
+            let guard = 0;
+            while (list.children.length > 1 && guard++ < 3000 &&
+                   aside.getBoundingClientRect().bottom > main.getBoundingClientRect().bottom) {
+                list.removeChild(list.lastElementChild);
+            }
+        }
+
+        // local calendar date (matches what each row actually displays), used for grouping
+        function localDateKey(ev) {
+            const ms = prettyDate(ev).ms;
+            if (!ms) return ev.dateEvent || '';
+            const d = new Date(ms);
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+
+        // ----- History tab: every completed match, with date + owner filters -----
+        function renderHistory() {
+            const el = document.getElementById('tab-history');
+            const dates = [...new Set(FIX.completed.map(localDateKey))].sort().reverse();
+            const dateOpts = dates.map(d => {
+                const lbl = new Date(d + 'T00:00:00').toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short' });
+                return `<option value="${d}">${lbl}</option>`;
+            }).join('');
+            const ownerOpts = Object.keys(PEOPLE).map(p => `<option value="${p}">${p}</option>`).join('');
+
+            el.innerHTML = `
+                <div class="filters">
+                    <select id="hDate"><option value="">All dates</option>${dateOpts}</select>
+                    <select id="hOwner"><option value="">Everyone</option>${ownerOpts}</select>
+                </div>
+                <div class="hcount" id="hCount"></div>
+                <div class="matches hist-scroll" id="histList"></div>`;
+
+            const dateSel = el.querySelector('#hDate');
+            const ownerSel = el.querySelector('#hOwner');
+            const apply = () => drawHistory(dateSel.value, ownerSel.value);
+            dateSel.onchange = apply;
+            ownerSel.onchange = apply;
+            apply();
+        }
+
+        function drawHistory(date, owner) {
+            const list = FIX.completed
+                .filter(ev => !date || localDateKey(ev) === date)
+                .filter(ev => {
+                    if (!owner) return true;
+                    const h = findTeam(ev.strHomeTeam), a = findTeam(ev.strAwayTeam);
+                    return (h && h.owner === owner) || (a && a.owner === owner);
+                })
+                .sort((a,b) => (prettyDate(b).ms||0) - (prettyDate(a).ms||0));
+
+            document.getElementById('hCount').textContent =
+                `${list.length} match${list.length === 1 ? '' : 'es'}`;
+            document.getElementById('histList').innerHTML = list.length
+                ? list.map(scoreMatch).join('')
+                : `<div class="state-msg">No matches for this filter.</div>`;
+        }
+
+        // ----- tab switching -----
+        function setupTabs() {
+            document.querySelectorAll('.tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const name = btn.dataset.tab;
+                    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === btn));
+                    document.getElementById('tab-fixtures').hidden = name !== 'fixtures';
+                    document.getElementById('tab-history').hidden = name !== 'history';
+                    if (name === 'fixtures') fitFixtures();
+                });
+            });
+        }
+
+        function renderStrip() { renderFixtures(); renderHistory(); }
+
+        // ============================================================
+        //  RENDER: draft cards
+        // ============================================================
+        function renderDraft() {
+            const byPerson = {};
+            for (const p in PEOPLE) byPerson[p] = [];
+            for (const t of TEAMS) byPerson[t.owner].push(t);
+            const order = Object.keys(PEOPLE);
+
+            document.getElementById('draft').innerHTML = order.map(name => {
+                const teams = byPerson[name].sort((a,b) => TIER_ORDER[a.tier]-TIER_ORDER[b.tier] || (a.dec||1e9)-(b.dec||1e9));
+                return `<div class="person-card" style="--p-color:${PEOPLE[name]}">
+                    <h3><span class="dot" style="background:${PEOPLE[name]}"></span>${name}</h3>
+                    ${teams.map(t => `
+                        <div class="team-row">
+                            <img class="flag sm" src="${flagUrl(t.code)}" alt="" loading="lazy">
+                            <span class="tr-name">${t.name}</span>
+                            <span class="tier-badge tier-${t.tier}">${t.tier}</span>
+                            <span class="tr-odds">${oddsReady ? (t.odds || 'N/A') : (oddsErrored ? 'N/A' : '&hellip;')}</span>
+                        </div>`).join('')}
+                </div>`;
+            }).join('');
+        }
+
+        // ============================================================
+        //  FETCH live data (TheSportsDB, free public key "3")
+        // ============================================================
+        const API = 'https://www.thesportsdb.com/api/v1/json/3';
+        const WC_LEAGUE = 4429;
+
+        async function getJSON(url) {
+            const r = await fetch(url);
+            if (!r.ok) throw new Error(r.status);
+            return r.json();
+        }
+
+        async function loadLive() {
+            // Group matchdays 1-3 (eventsround) cover the whole group stage with real
+            // team names; past/next/season fill in recent results and any extras.
+            const sources = await Promise.allSettled([
+                getJSON(`${API}/eventsround.php?id=${WC_LEAGUE}&r=1&s=2026`),
+                getJSON(`${API}/eventsround.php?id=${WC_LEAGUE}&r=2&s=2026`),
+                getJSON(`${API}/eventsround.php?id=${WC_LEAGUE}&r=3&s=2026`),
+                getJSON(`${API}/eventspastleague.php?id=${WC_LEAGUE}`),
+                getJSON(`${API}/eventsnextleague.php?id=${WC_LEAGUE}`),
+                getJSON(`${API}/eventsseason.php?id=${WC_LEAGUE}&s=2026`),
+            ]);
+
+            const seen = {}, all = [];
+            for (const s of sources) {
+                if (s.status !== 'fulfilled' || !s.value) continue;
+                const evs = s.value.events || s.value.results || [];
+                for (const ev of (evs||[])) {
+                    if (!ev || !ev.idEvent || seen[ev.idEvent]) continue;
+                    seen[ev.idEvent] = 1; all.push(ev);
+                }
+            }
+
+            if (!all.length) {
+                document.getElementById('updated').textContent = 'Live match data unavailable right now — odds & draft are always up to date.';
+                renderForm([]); FIX.completed = []; FIX.upcoming = []; FIX.todayDone = []; renderStrip();
+                return;
+            }
+
+            const completed = all.filter(hasScoreEv);
+            const upcoming  = all.filter(ev => !hasScoreEv(ev));
+
+            const byTime = (a,b) => (prettyDate(a).ms||0) - (prettyDate(b).ms||0);
+            upcoming.sort(byTime);
+            completed.sort((a,b) => byTime(b,a));
+
+            // matches already completed today (local)
+            const now = new Date();
+            const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const todayDone = completed.filter(ev => (prettyDate(ev).ms || 0) >= startToday);
+
+            FIX.completed = completed;   // every completed match (History + form table)
+            FIX.upcoming = upcoming;
+            FIX.todayDone = todayDone;
+
+            renderForm(completed);       // form table uses ALL completed matches
+            renderStrip();               // Fixtures (today's done + upcoming) + History
+
+            document.getElementById('updated').textContent =
+                `Loaded ${new Date().toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`;
+        }
+
+        // ============================================================
+        //  LIVE ODDS — read from the homelab odds service (no key in the page)
+        // ============================================================
+        // Your homelab fetches the bookmaker odds and serves them over HTTPS via
+        // nginx-proxy-manager. Point this at that endpoint. Leave '' to use the
+        // baked-in static odds below.
+        const ODDS_URL = 'https://odds.olek.co.nz/odds.json';
+
+        function fmtOdds(dec) {
+            const f = dec - 1;
+            if (f <= 0) return dec.toFixed(2);
+            if (f < 1) return `1/${Math.max(1, Math.round(1/f))}`;
+            return `${Math.round(f)}/1`;
+        }
+
+        const setOddsTime = txt => { const el = document.getElementById('oddsBarTime'); if (el) el.textContent = txt; };
+
+        function oddsFailed() {
+            oddsReady = false; oddsErrored = true;
+            for (const t of TEAMS) { t.dec = null; t.odds = null; }
+            renderOdds();
+            renderDraft();
+            setOddsTime('feed unavailable');
+            const note = document.getElementById('oddsUpdated');
+            if (note) note.textContent = 'Odds feed unreachable — something’s wrong.';
+        }
+
+        async function loadOdds() {
+            if (!ODDS_URL) { oddsFailed(); return; }
+            try {
+                const r = await fetch(ODDS_URL, { cache: 'no-store' });
+                if (!r.ok) throw new Error(r.status);
+                const data = await r.json();
+                if (!data || !data.teams) throw new Error('no data');
+
+                let applied = 0;
+                for (const t of TEAMS) {
+                    const dec = data.teams[t.name];
+                    if (typeof dec === 'number' && dec > 1) { t.dec = dec; t.odds = fmtOdds(dec); applied++; }
+                    else { t.dec = null; t.odds = null; }
+                }
+                if (!applied) throw new Error('empty');
+
+                oddsReady = true; oddsErrored = false;
+                renderOdds();
+                renderDraft();
+
+                let when = '';
+                if (data.updated) {
+                    const dt = new Date(data.updated);
+                    when = dt.toLocaleDateString(undefined, { day:'numeric', month:'short' }) +
+                           ' ' + dt.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' });
+                }
+                setOddsTime(when ? `updated ${when}` : 'live');
+                const note = document.getElementById('oddsUpdated');
+                if (note) note.textContent =
+                    `${data.live ? 'Live bookmaker odds (consensus)' : 'Bookmaker odds'}${when ? ' · updated ' + when : ''}`;
+            } catch (e) {
+                oddsFailed();
+            }
+        }
+
+        // re-fit the fixtures feed to the right column whenever the layout reflows
+        let resizeT;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeT);
+            resizeT = setTimeout(renderFixtures, 150);
+        });
+
+        // ---- boot ----
+        document.getElementById('toFullOdds').onclick = () =>
+            document.getElementById('oddsPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setupTabs();
+        renderOdds();
+        renderDraft();
+        loadOdds();
+        loadLive().catch(err => {
+            console.error(err);
+            document.getElementById('updated').textContent = 'Live match data unavailable right now — odds & draft are always up to date.';
+            renderForm([]); FIX.completed = []; FIX.upcoming = []; FIX.todayDone = []; renderStrip();
+        });
+        </script>
+    </body>
+</html>
