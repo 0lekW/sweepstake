@@ -45,7 +45,7 @@
                 min-width: 0;
             }
             /* Fixtures drawer bits — hidden on desktop, shown only when narrow */
-            .strip-toggle, .strip-backdrop, .strip-close { display: none; }
+            .strip-toggle, .strip-backdrop, .strip-close, .strip-grip { display: none; }
             .strip-toggle {
                 position: fixed; bottom: 1.1rem; right: 1.1rem; z-index: 50;
                 align-items: center; gap: 0.5rem;
@@ -72,12 +72,14 @@
                 .strip {
                     position: fixed; top: 0; right: 0; z-index: 60;
                     width: min(23rem, 90vw); height: 100dvh;
-                    padding: 1rem; overflow-y: auto;
+                    padding: 1rem 1rem 1rem 1.6rem; overflow-y: auto;
+                    overscroll-behavior: contain;
                     background: var(--bg-primary);
                     border-left: 1px solid var(--border-color);
                     box-shadow: -18px 0 44px -12px rgba(0,0,0,0.65);
                     transform: translateX(100%);
                     transition: transform 0.28s ease;
+                    touch-action: pan-y;
                 }
                 .strip.open { transform: translateX(0); }
                 .strip-toggle { display: inline-flex; }
@@ -87,6 +89,33 @@
                     background: none; border: none; color: var(--text-secondary);
                     font-size: 1.8rem; line-height: 1; cursor: pointer; padding: 0.1rem 0.4rem;
                 }
+
+                /* grab handle on the left edge — the affordance that the drawer swipes away */
+                .strip-grip {
+                    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+                    position: absolute; left: 0; top: 0; bottom: 0;
+                    width: 1.6rem; padding-top: 40vh;
+                    pointer-events: none;
+                }
+                .strip-grip::before {
+                    content: ""; width: 4px; height: 46px; border-radius: 99px;
+                    background: var(--text-tertiary); opacity: 0.55;
+                    animation: gripHint 2.4s ease-in-out infinite;
+                }
+                .strip-grip .grip-label {
+                    writing-mode: vertical-rl; transform: rotate(180deg);
+                    font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.04em;
+                    color: var(--text-tertiary); opacity: 0.7; white-space: nowrap;
+                }
+            }
+            /* lock the page behind the drawer so it can't scroll through */
+            body.drawer-open { overflow: hidden; }
+            @keyframes gripHint {
+                0%, 100% { transform: translateX(0); opacity: 0.55; }
+                50% { transform: translateX(4px); opacity: 0.9; }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .strip-grip::before { animation: none; }
             }
 
             /* Tabs inside the fixtures widget */
@@ -498,6 +527,7 @@
                 <!-- LEFT (desktop): tall fixtures strip, column 1. On narrow screens it
                      becomes an off-canvas drawer opened by the floating button below. -->
                 <aside class="strip">
+                    <div class="strip-grip" aria-hidden="true"><span class="grip-label">swipe to close</span></div>
                     <button class="strip-close" id="stripClose" aria-label="Close fixtures">&times;</button>
                     <section class="panel">
                         <div class="tabs">
@@ -1491,11 +1521,51 @@
             const toggle = document.getElementById('stripToggle');
             const backdrop = document.getElementById('stripBackdrop');
             const close = document.getElementById('stripClose');
-            const setOpen = on => { strip.classList.toggle('open', on); backdrop.classList.toggle('open', on); };
+            const setOpen = on => {
+                strip.classList.toggle('open', on);
+                backdrop.classList.toggle('open', on);
+                document.body.classList.toggle('drawer-open', on);
+            };
             toggle.addEventListener('click', () => setOpen(true));
             backdrop.addEventListener('click', () => setOpen(false));
             close.addEventListener('click', () => setOpen(false));
             document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
+
+            // dragging the page behind the backdrop shouldn't scroll it
+            backdrop.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+            // swipe right to close — with the drawer following your finger
+            let startX = 0, startY = 0, dx = 0, dragging = false, axis = null;
+            const width = () => strip.getBoundingClientRect().width || 1;
+            strip.addEventListener('touchstart', e => {
+                if (!strip.classList.contains('open') || e.touches.length !== 1) return;
+                startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+                dx = 0; dragging = true; axis = null;
+            }, { passive: true });
+            strip.addEventListener('touchmove', e => {
+                if (!dragging) return;
+                const mx = e.touches[0].clientX - startX, my = e.touches[0].clientY - startY;
+                if (!axis) {
+                    if (Math.abs(mx) < 8 && Math.abs(my) < 8) return;
+                    axis = Math.abs(mx) > Math.abs(my) ? 'x' : 'y';
+                }
+                if (axis !== 'x') return;           // let vertical scrolls through
+                dx = Math.max(0, mx);                // only rightward drags
+                strip.style.transition = 'none';
+                strip.style.transform = `translateX(${dx}px)`;
+                backdrop.style.opacity = String(Math.max(0, 1 - dx / width()));
+                e.preventDefault();
+            }, { passive: false });
+            const endDrag = () => {
+                if (!dragging) return;
+                dragging = false;
+                strip.style.transition = '';
+                strip.style.transform = '';
+                backdrop.style.opacity = '';
+                if (axis === 'x' && dx > width() * 0.3) setOpen(false);
+            };
+            strip.addEventListener('touchend', endDrag);
+            strip.addEventListener('touchcancel', endDrag);
         }
 
         // ---- boot ----
