@@ -173,6 +173,7 @@
 
             /* Full breakdown: one column per person (best first), teams + odds going down */
             .breakdown { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(8rem, 1fr); gap: 0.6rem; overflow-x: auto; padding-bottom: 0.4rem; }
+            .bd-stack { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
             .bd-col {
                 background: var(--bg-secondary);
                 border: 1px solid var(--border-color);
@@ -180,6 +181,8 @@
                 padding: 0.6rem 0.55rem;
                 min-width: 0;
             }
+            .bd-trend { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.35rem 0.4rem; }
+            .bd-trend .spark { height: 2.3rem; }
             .bd-head { text-align: center; padding-bottom: 0.45rem; margin-bottom: 0.4rem; border-bottom: 1px solid var(--border-color); }
             .bd-rank { font-family: var(--font-mono); font-size: 0.64rem; color: var(--text-tertiary); }
             .bd-name { font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem; white-space: nowrap; overflow: hidden; }
@@ -249,6 +252,11 @@
             .m-live { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.12rem; font-family: var(--font-mono); font-size: 0.64rem; font-weight: 600; letter-spacing: 0.03em; color: var(--accent-success); }
             .live-dot { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--accent-success); animation: livePulse 1.4s ease-in-out infinite; }
             @keyframes livePulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-success) 65%, transparent); } 50% { opacity: 0.45; box-shadow: 0 0 0 4px transparent; } }
+            /* "as it stands" provisional-live flags on standings + stats */
+            .asitstands { display: inline-flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.58rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-success); margin-left: 0.35rem; vertical-align: middle; }
+            .live-pill { display: inline-flex; align-items: center; gap: 0.25rem; font-family: var(--font-mono); font-size: 0.55rem; font-weight: 700; letter-spacing: 0.07em; color: var(--accent-success); border: 1px solid color-mix(in srgb, var(--accent-success) 40%, transparent); padding: 0.04rem 0.32rem; border-radius: 99px; }
+            .lb-row.rowlive { border-color: color-mix(in srgb, var(--accent-success) 35%, var(--border-color)); }
+            .stats-live-note { display: flex; align-items: center; gap: 0.45rem; font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent-success); background: color-mix(in srgb, var(--accent-success) 8%, var(--bg-secondary)); border: 1px solid color-mix(in srgb, var(--accent-success) 30%, var(--border-color)); border-radius: var(--radius-sm); padding: 0.5rem 0.7rem; margin-bottom: 1rem; }
 
             /* Draft cards */
             .draft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.9rem; }
@@ -425,6 +433,16 @@
 
             .stats-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
             @media (max-width: 640px) { .stats-cols { grid-template-columns: 1fr; } }
+
+            /* title-chance trend sparkline */
+            .trend-box { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.8rem 0.9rem; margin-bottom: 1.5rem; }
+            .trend-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+            .trend-now { font-size: 1.5rem; font-weight: 700; font-family: var(--font-sans); }
+            .trend-delta { font-family: var(--font-mono); font-size: 0.74rem; font-weight: 600; }
+            .trend-delta.up { color: var(--accent-success); }
+            .trend-delta.down { color: #f87171; }
+            .spark { display: block; width: 100%; height: 3rem; }
+            .trend-foot { font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-tertiary); margin-top: 0.3rem; }
         </style>
     </head>
     <body>
@@ -471,7 +489,7 @@
 
                     <section class="panel">
                         <div class="panel-head">
-                            <h2>Group Stage Leaderboard</h2>
+                            <h2>Group Stage Leaderboard <span id="formLive"></span></h2>
                         </div>
                         <div class="board" id="formBoard"></div>
                     </section>
@@ -716,17 +734,24 @@
 
             document.getElementById('oddsBoard').innerHTML = rows.map(([name,d],i) => {
                 const ts = teamsByOwner[name].slice().sort((a,b) => (a.dec||1e9) - (b.dec||1e9));
-                return `<div class="bd-col" style="--p-color:${PEOPLE[name]}">
-                    <div class="bd-head">
-                        <div class="bd-rank">#${i+1}</div>
-                        <div class="bd-name"><span class="dot" style="background:${PEOPLE[name]}"></span>${name}</div>
-                        <div class="bd-pct">${(d.p*100).toFixed(1)}%</div>
+                const series = (ODDS_HISTORY || []).map(h => (standingsFrom(h.teams)[name] || 0) * 100);
+                const trend = series.length >= 2
+                    ? `<div class="bd-trend" title="${name}'s title chance over time">${sparkline(series, PEOPLE[name])}</div>`
+                    : '';
+                return `<div class="bd-stack">
+                    <div class="bd-col" style="--p-color:${PEOPLE[name]}">
+                        <div class="bd-head">
+                            <div class="bd-rank">#${i+1}</div>
+                            <div class="bd-name"><span class="dot" style="background:${PEOPLE[name]}"></span>${name}</div>
+                            <div class="bd-pct">${(d.p*100).toFixed(1)}%</div>
+                        </div>
+                        ${ts.map(t => `<div class="bd-team">
+                            <img class="flag sm" src="${flagUrl(t.code)}" alt="" loading="lazy">
+                            <span class="bd-tn">${t.name}</span>
+                            <span class="bd-odds">${t.odds || 'N/A'}</span>
+                        </div>`).join('')}
                     </div>
-                    ${ts.map(t => `<div class="bd-team">
-                        <img class="flag sm" src="${flagUrl(t.code)}" alt="" loading="lazy">
-                        <span class="bd-tn">${t.name}</span>
-                        <span class="bd-odds">${t.odds || 'N/A'}</span>
-                    </div>`).join('')}
+                    ${trend}
                 </div>`;
             }).join('');
         }
@@ -757,25 +782,45 @@
         }
 
         // ============================================================
-        //  RENDER: form table from completed results
+        //  "As it stands" — fold live, in-progress matches provisionally into the
+        //  standings/stats so everything moves in real time during a game.
         // ============================================================
-        function renderForm(completed) {
-            const { rows } = formTable(completed);
+        function resultsAsItStands() { return [...(FIX.completed || []), ...(FIX.live || [])]; }
+        function liveOwnersSet() {
+            const s = new Set();
+            for (const ev of (FIX.live || [])) {
+                const h = findTeam(ev.strHomeTeam), a = findTeam(ev.strAwayTeam);
+                if (h) s.add(h.owner); if (a) s.add(a.owner);
+            }
+            return s;
+        }
+
+        // ============================================================
+        //  RENDER: form table (provisional — includes live as it stands)
+        // ============================================================
+        function renderForm() {
+            const liveOwners = liveOwnersSet();
+            const { rows } = formTable(resultsAsItStands());
             const anyPlayed = rows.some(r => r[1].P > 0);
+            const tag = document.getElementById('formLive');
+            if (tag) tag.innerHTML = liveOwners.size ? `<span class="asitstands"><span class="live-dot"></span>as it stands</span>` : '';
             const board = document.getElementById('formBoard');
             if (!anyPlayed) { board.innerHTML = `<div class="state-msg">No completed matches yet &mdash; check back once the action kicks off.</div>`; return; }
 
             const max = Math.max(1, rows[0][1].pts);
-            board.innerHTML = rows.map(([name,r],i) => `
-                <div class="lb-row${i===0&&r.pts>0?' leader':''}">
+            board.innerHTML = rows.map(([name,r],i) => {
+                const isLive = liveOwners.has(name);
+                return `
+                <div class="lb-row${i===0&&r.pts>0?' leader':''}${isLive?' rowlive':''}">
                     <div class="lb-rank">${i+1}</div>
                     <div class="lb-main">
-                        <div class="lb-name"><span class="dot" style="background:${PEOPLE[name]}"></span>${name}${i===0&&r.pts>0?' <span class="lead-pill">Leader</span>':''}</div>
+                        <div class="lb-name"><span class="dot" style="background:${PEOPLE[name]}"></span>${name}${i===0&&r.pts>0?' <span class="lead-pill">Leader</span>':''}${isLive?' <span class="live-pill"><span class="live-dot"></span>LIVE</span>':''}</div>
                         <div class="lb-sub">${r.P} played &middot; ${r.W}W ${r.D}D ${r.L}L &middot; ${r.GF}:${r.GA} goals</div>
                         <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${(r.pts/max*100).toFixed(0)}%;background:${PEOPLE[name]}"></div></div>
                     </div>
                     <div class="lb-figure">${r.pts}<small>pts</small></div>
-                </div>`).join('');
+                </div>`;
+            }).join('');
         }
 
         // ============================================================
@@ -1076,12 +1121,50 @@
         const scTeam = (label, t, sub) =>
             `<div class="stat-card"><div class="sc-label">${label}</div><div class="sc-val sc-team"><img class="flag sm" src="${flagUrl(t.code)}" alt="">${t.name}</div><div class="sc-sub">${sub || (t.odds ? 'odds ' + t.odds : '')}</div></div>`;
 
+        // ----- odds history -> per-person title-chance trend -----
+        const ODDS_HISTORY_URL = 'https://odds.olek.co.nz/odds-history.json';
+        let ODDS_HISTORY = []; // [{ t, teams:{name:decimal} }]
+
+        // reconstruct each person's title chance from a raw team-odds snapshot
+        function standingsFrom(teamsOdds) {
+            const raw = TEAMS.map(t => { const d = teamsOdds[t.name]; return (typeof d === 'number' && d > 1) ? 1 / d : 0; });
+            const total = raw.reduce((a, b) => a + b, 0) || 1;
+            const per = {}; for (const p in PEOPLE) per[p] = 0;
+            TEAMS.forEach((t, i) => { per[t.owner] += raw[i] / total; });
+            return per;
+        }
+        async function loadOddsHistory() {
+            try {
+                const r = await fetch(ODDS_HISTORY_URL, { cache: 'no-store' });
+                if (!r.ok) throw new Error(r.status);
+                const d = await r.json();
+                ODDS_HISTORY = Array.isArray(d.points) ? d.points : [];
+            } catch (e) { ODDS_HISTORY = []; }
+            if (oddsReady) renderOdds();   // surface the trend card under each breakdown column
+            refreshStatsIfOpen();
+        }
+        function sparkline(series, color) {
+            if (series.length < 2) return '';
+            const w = 100, h = 30, pad = 3;
+            const min = Math.min(...series), max = Math.max(...series), range = (max - min) || 1;
+            const xy = i => [pad + (i / (series.length - 1)) * (w - 2 * pad), pad + (1 - (series[i] - min) / range) * (h - 2 * pad)];
+            const pts = series.map((_, i) => xy(i).map(n => n.toFixed(1)).join(',')).join(' ');
+            const [lx, ly] = xy(series.length - 1);
+            return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+                <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+                <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2.2" fill="${color}"/>
+            </svg>`;
+        }
+
         function renderStatsFor(name) {
             const col = PEOPLE[name];
-            const completed = FIX.completed || [];
+            const finished = FIX.completed || [];
+            const standings = resultsAsItStands();   // finished + live (provisional, as it stands)
             const isMine = ev => { const h = findTeam(ev.strHomeTeam), a = findTeam(ev.strAwayTeam); return (h && h.owner === name) || (a && a.owner === name); };
-            const myCompleted = completed.filter(isMine).sort((a, b) => (prettyDate(b).ms || 0) - (prettyDate(a).ms || 0));
+            const myCompleted = finished.filter(isMine).sort((a, b) => (prettyDate(b).ms || 0) - (prettyDate(a).ms || 0));
             const myUpcoming = (FIX.upcoming || []).filter(isMine).sort((a, b) => (prettyDate(a).ms || 0) - (prettyDate(b).ms || 0));
+            const myLive = (FIX.live || []).filter(isMine);
+            const iAmLive = myLive.length > 0;
             const myTeams = TEAMS.filter(t => t.owner === name);
 
             // odds standing
@@ -1089,16 +1172,16 @@
             const oddsRank = S ? S.rows.findIndex(r => r[0] === name) + 1 : null;
             const oddsPct = S ? S.per[name].p * 100 : null;
 
-            // group-stage standing
-            const { tbl, rows: formRows } = formTable(completed);
+            // group-stage standing (provisional — includes live)
+            const { tbl, rows: formRows } = formTable(standings);
             const me = tbl[name];
             const anyPlayed = formRows.some(r => r[1].P > 0);
             const formRank = formRows.findIndex(r => r[0] === name) + 1;
             const gd = me.GF - me.GA;
 
-            // per-team records + head-to-head
-            const trec = teamRecords(completed);
-            const h2h = headToHead(completed);
+            // per-team records + head-to-head (provisional — includes live)
+            const trec = teamRecords(standings);
+            const h2h = headToHead(standings);
             let bunny = null, bunnyN = 0, nem = null, nemN = 0, hRows = [];
             for (const opp in PEOPLE) {
                 if (opp === name) continue;
@@ -1117,11 +1200,20 @@
 
             const teamsSorted = myTeams.slice().sort((a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier] || (a.dec || 1e9) - (b.dec || 1e9));
 
+            // title-chance trend from the homelab odds-history snapshots
+            const trendSeries = (ODDS_HISTORY || []).map(h => (standingsFrom(h.teams)[name] || 0) * 100);
+            const hasTrend = trendSeries.length >= 2;
+            const trendDelta = hasTrend ? trendSeries[trendSeries.length - 1] - trendSeries[0] : 0;
+            const trendFrom = hasTrend ? new Date(ODDS_HISTORY[0].t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '';
+
             document.getElementById('statsDetail').innerHTML = `
               <div class="stats-top">
                   <h2 class="stats-name"><span class="dot" style="background:${col}"></span>${name}</h2>
                   <button class="stats-change" id="statsChange">&#8617; change</button>
               </div>
+
+              ${iAmLive ? `<div class="stats-live-note"><span class="live-dot"></span>Live &mdash; your stats below include an in-progress match, as it stands.</div>
+              <div class="matches" style="margin-bottom:1.3rem;">${myLive.map(liveMatch).join('')}</div>` : ''}
 
               <div class="stat-cards">
                   ${scCard('Title chance', oddsPct != null ? oddsPct.toFixed(1) + '%' : '&mdash;', oddsRank ? `#${oddsRank} of 8 in odds` : 'odds loading')}
@@ -1131,6 +1223,16 @@
                   ${bestHope ? scTeam('Best hope', bestHope) : ''}
                   ${formTeam ? scTeam('In form', formTeam.t, `${formTeam.r.W}W ${formTeam.r.D}D ${formTeam.r.L}L`) : ''}
               </div>
+
+              ${hasTrend ? `
+              <div class="stats-sec-h">Title chance trend</div>
+              <div class="trend-box">
+                  <div class="trend-head">
+                      <span class="trend-now">${trendSeries[trendSeries.length - 1].toFixed(1)}%</span>
+                      <span class="trend-delta ${trendDelta >= 0 ? 'up' : 'down'}">${trendDelta >= 0 ? '▲ +' : '▼ '}${trendDelta.toFixed(1)} since ${trendFrom}</span>
+                  </div>
+                  ${sparkline(trendSeries, col)}
+              </div>` : ''}
 
               <div class="stats-sec-h">Head to head</div>
               <div class="h2h-cards">
@@ -1223,7 +1325,7 @@
         // Render everything that depends on match data. History is only rebuilt when the
         // finished results actually change, so live polling doesn't reset its filters.
         function renderAfterData() {
-            renderForm(FIX.completed);
+            renderForm();
             renderFixtures();
             const sig = FIX.completed.map(e => `${e.idEvent}:${e.intHomeScore}-${e.intAwayScore}`).join('|');
             if (sig !== _finishedSig) { renderHistory(); _finishedSig = sig; }
@@ -1405,6 +1507,7 @@
         renderOdds();
         renderDraft();
         loadOdds();
+        loadOddsHistory();
         // match data: homelab FotMob feed first; fall back to TheSportsDB if it's unreachable
         loadFixtures().then(ok => { if (!ok) return loadLive(); }).catch(err => {
             console.error(err);
