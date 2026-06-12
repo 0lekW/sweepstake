@@ -292,6 +292,91 @@
             .hl-side.away { flex-direction: row-reverse; }
             .hl-score { font-family: var(--font-mono); font-weight: 700; font-size: 1rem; flex: 0 0 auto; }
             .hl-meta { text-align: center; font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-tertiary); margin-top: 0.35rem; }
+
+            /* My Stats view */
+            /* faces float free across the full viewport height, no container */
+            .stats-pick-grid { position: relative; min-height: calc(100vh - 13rem); }
+            .pick-face {
+                position: absolute; transform: translate(-50%, -50%);
+                background: none; border: none; padding: 0; cursor: pointer; color: var(--text-primary);
+                display: flex; flex-direction: column; align-items: center; gap: 0.7rem;
+            }
+            .pick-face:nth-child(1) { top: 13%; left: 15%; }
+            .pick-face:nth-child(2) { top: 16%; left: 50%; }
+            .pick-face:nth-child(3) { top: 20%; left: 85%; }
+            .pick-face:nth-child(4) { top: 45%; left: 30%; }
+            .pick-face:nth-child(5) { top: 48%; left: 68%; }
+            .pick-face:nth-child(6) { top: 76%; left: 16%; }
+            .pick-face:nth-child(7) { top: 80%; left: 52%; }
+            .pick-face:nth-child(8) { top: 74%; left: 86%; }
+            .pf-circle {
+                width: clamp(5.5rem, 11vw, 9rem); aspect-ratio: 1; border-radius: 50%; overflow: hidden;
+                background: var(--bg-secondary); border: 3px solid var(--p-color, #888);
+                display: grid; place-items: center;
+                animation: floaty 6s ease-in-out infinite;
+                transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+            }
+            .pick-face:nth-child(2n) .pf-circle { animation-duration: 7.5s; animation-delay: -2s; }
+            .pick-face:nth-child(3n) .pf-circle { animation-duration: 8.5s; animation-delay: -4s; }
+            .pf-circle img { width: 100%; height: 100%; object-fit: cover; display: block; }
+            .pick-face:hover .pf-circle { box-shadow: 0 16px 40px -12px color-mix(in srgb, var(--p-color, #888) 70%, #000); border-color: color-mix(in srgb, var(--p-color, #888) 75%, #fff); }
+            .pf-name { font-family: var(--font-sans); font-weight: 600; font-size: 1.05rem; }
+            @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+            @media (max-width: 600px) {
+                .stats-pick-grid { position: static; min-height: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; padding: 1.5rem 0; }
+                .pick-face { position: static; transform: none; }
+                .pf-circle { animation: none; }
+            }
+
+            .stats-change {
+                background: var(--bg-secondary); border: 1px solid var(--border-color); cursor: pointer;
+                font-family: var(--font-sans); font-size: 0.9rem; font-weight: 600; color: var(--text-secondary);
+                padding: 0.45rem 0.95rem; border-radius: 99px;
+                transition: color var(--transition-fast), border-color var(--transition-fast);
+            }
+            .stats-change:hover { color: var(--text-primary); border-color: var(--border-hover); }
+
+            .stats-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.1rem; }
+            .stats-name { display: flex; align-items: center; gap: 0.55rem; margin: 0; font-size: 1.4rem; font-family: var(--font-sans); }
+            .stats-name .dot { width: 0.8rem; height: 0.8rem; }
+
+            .stat-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 0.7rem; margin-bottom: 1.5rem; }
+            .stat-card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.7rem 0.8rem; }
+            .sc-label { font-family: var(--font-mono); font-size: 0.63rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); margin-bottom: 0.35rem; }
+            .sc-val { font-size: 1.45rem; font-weight: 700; font-family: var(--font-sans); line-height: 1.1; }
+            .sc-val small { font-size: 0.7rem; font-weight: 400; color: var(--text-tertiary); }
+            .sc-sep { color: var(--text-tertiary); margin: 0 0.08rem; }
+            .sc-val.sc-team { font-size: 0.98rem; display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
+            .sc-val.sc-team img { flex: 0 0 auto; }
+            .sc-sub { font-family: var(--font-mono); font-size: 0.67rem; color: var(--text-tertiary); margin-top: 0.3rem; }
+
+            .stats-sec-h { font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-tertiary); margin: 0.3rem 0 0.7rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--border-color); }
+
+            .h2h-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin-bottom: 0.8rem; }
+            @media (max-width: 560px) { .h2h-cards { grid-template-columns: 1fr; } }
+            .h2h-card { position: relative; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.8rem 0.9rem; }
+            .h2h-card.good { border-left: 3px solid var(--accent-success); }
+            .h2h-card.bad { border-left: 3px solid #ef4444; }
+            .h2h-lbl { font-family: var(--font-mono); font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); margin-bottom: 0.5rem; }
+            .h2h-who { display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 600; }
+            .h2h-num { position: absolute; top: 0.8rem; right: 0.9rem; font-family: var(--font-mono); font-weight: 700; font-size: 1.1rem; }
+            .h2h-none { color: var(--text-tertiary); font-size: 0.85rem; }
+
+            .h2h-table { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 1.5rem; }
+            .h2h-row { display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.4rem 0.7rem; }
+            .h2h-row .cname { display: flex; align-items: center; gap: 0.45rem; font-size: 0.9rem; font-weight: 500; }
+            .h2h-rec { font-family: var(--font-mono); font-size: 0.8rem; display: flex; gap: 0.6rem; }
+            .h2h-rec b.w { color: var(--accent-success); font-weight: 600; }
+            .h2h-rec b.l { color: #f87171; font-weight: 600; }
+
+            .stats-teams { display: flex; flex-direction: column; margin-bottom: 1.5rem; }
+            .st-team { display: grid; grid-template-columns: auto 1fr auto auto auto; align-items: center; gap: 0.5rem; padding: 0.42rem 0; border-top: 1px solid var(--border-color); }
+            .st-team:first-child { border-top: 0; }
+            .st-team .tr-name { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .st-rec { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-secondary); white-space: nowrap; }
+
+            .stats-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+            @media (max-width: 640px) { .stats-cols { grid-template-columns: 1fr; } }
         </style>
     </head>
     <body>
@@ -304,6 +389,7 @@
                     <nav class="view-tabs">
                         <button class="vtab active" data-view="dashboard">Dashboard</button>
                         <button class="vtab" data-view="highlights">Highlights</button>
+                        <button class="vtab" data-view="stats">My Stats</button>
                     </nav>
                 </div>
                 <div class="meta" id="updated">Loading live data&hellip;</div>
@@ -371,6 +457,11 @@
                     <div id="hlGrid"></div>
                 </section>
             </div><!-- /view-highlights -->
+
+            <div id="view-stats" class="view" hidden>
+                <div id="statsPicker"></div>
+                <div id="statsDetail" class="panel" hidden></div>
+            </div><!-- /view-stats -->
         </main>
 
         <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
@@ -468,6 +559,67 @@
         const findTeam = apiName => NAME_LOOKUP[normalize(apiName)] || null;
 
         // ============================================================
+        //  COMPUTE: shared standings / form / records / head-to-head
+        //  (pure helpers reused by the dashboard renders and My Stats)
+        // ============================================================
+        function peopleStandings() {
+            const raw = TEAMS.map(t => t.dec ? 1 / t.dec : 0);
+            const total = raw.reduce((a, b) => a + b, 0) || 1;
+            const prob = {}; TEAMS.forEach((t, i) => prob[t.name] = raw[i] / total);
+            const per = {}; for (const p in PEOPLE) per[p] = { p: 0, best: null, bestP: 0 };
+            for (const t of TEAMS) {
+                const pr = prob[t.name];
+                per[t.owner].p += pr;
+                if (pr > per[t.owner].bestP) { per[t.owner].bestP = pr; per[t.owner].best = t; }
+            }
+            const rows = Object.entries(per).sort((a, b) => b[1].p - a[1].p);
+            return { prob, per, rows };
+        }
+        function formTable(completed) {
+            const tbl = {};
+            for (const p in PEOPLE) tbl[p] = { pts: 0, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0 };
+            const rec = (team, gf, ga) => {
+                if (!team) return;
+                const r = tbl[team.owner];
+                r.P++; r.GF += gf; r.GA += ga;
+                if (gf > ga) { r.W++; r.pts += 3; } else if (gf === ga) { r.D++; r.pts += 1; } else r.L++;
+            };
+            for (const ev of completed) {
+                rec(findTeam(ev.strHomeTeam), Number(ev.intHomeScore), Number(ev.intAwayScore));
+                rec(findTeam(ev.strAwayTeam), Number(ev.intAwayScore), Number(ev.intHomeScore));
+            }
+            const rows = Object.entries(tbl).sort((x, y) =>
+                y[1].pts - x[1].pts || (y[1].GF - y[1].GA) - (x[1].GF - x[1].GA) || y[1].GF - x[1].GF);
+            return { tbl, rows };
+        }
+        function teamRecords(completed) {
+            const r = {};
+            const rec = (team, gf, ga) => {
+                if (!team) return;
+                const x = (r[team.name] ||= { P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, pts: 0 });
+                x.P++; x.GF += gf; x.GA += ga;
+                if (gf > ga) { x.W++; x.pts += 3; } else if (gf === ga) { x.D++; x.pts += 1; } else x.L++;
+            };
+            for (const ev of completed) {
+                rec(findTeam(ev.strHomeTeam), Number(ev.intHomeScore), Number(ev.intAwayScore));
+                rec(findTeam(ev.strAwayTeam), Number(ev.intAwayScore), Number(ev.intHomeScore));
+            }
+            return r;
+        }
+        // h2h[X][Y] = number of completed matches where one of X's teams beat one of Y's
+        function headToHead(completed) {
+            const h = {}; for (const x in PEOPLE) { h[x] = {}; for (const y in PEOPLE) if (x !== y) h[x][y] = 0; }
+            for (const ev of completed) {
+                const ht = findTeam(ev.strHomeTeam), at = findTeam(ev.strAwayTeam);
+                if (!ht || !at || ht.owner === at.owner) continue;
+                const hs = Number(ev.intHomeScore), as = Number(ev.intAwayScore);
+                if (hs > as) h[ht.owner][at.owner]++;
+                else if (as > hs) h[at.owner][ht.owner]++;
+            }
+            return h;
+        }
+
+        // ============================================================
         //  RENDER: odds-based win probability
         // ============================================================
         function renderOdds() {
@@ -479,19 +631,7 @@
                 document.getElementById('oddsBoard').innerHTML = msg;
                 return;
             }
-            const raw = TEAMS.map(t => t.dec ? 1 / t.dec : 0);
-            const total = raw.reduce((a,b) => a+b, 0);
-            const prob = {};
-            TEAMS.forEach((t,i) => prob[t.name] = raw[i] / total);
-
-            const perPerson = {};
-            for (const p in PEOPLE) perPerson[p] = { p:0, best:null, bestP:0 };
-            for (const t of TEAMS) {
-                const pr = prob[t.name];
-                perPerson[t.owner].p += pr;
-                if (pr > perPerson[t.owner].bestP) { perPerson[t.owner].bestP = pr; perPerson[t.owner].best = t; }
-            }
-            const rows = Object.entries(perPerson).sort((a,b) => b[1].p - a[1].p);
+            const { rows } = peopleStandings();
             const max = rows[0][1].p;
 
             // top-3 podium + chasing pack (driven by the same win-probabilities)
@@ -565,26 +705,7 @@
         //  RENDER: form table from completed results
         // ============================================================
         function renderForm(completed) {
-            const tbl = {};
-            for (const p in PEOPLE) tbl[p] = { pts:0, P:0, W:0, D:0, L:0, GF:0, GA:0 };
-
-            function record(team, gf, ga) {
-                if (!team) return;
-                const r = tbl[team.owner];
-                r.P++; r.GF += gf; r.GA += ga;
-                if (gf > ga) { r.W++; r.pts += 3; }
-                else if (gf === ga) { r.D++; r.pts += 1; }
-                else { r.L++; }
-            }
-            for (const ev of completed) {
-                const h = findTeam(ev.strHomeTeam), a = findTeam(ev.strAwayTeam);
-                const hs = Number(ev.intHomeScore), as = Number(ev.intAwayScore);
-                record(h, hs, as);
-                record(a, as, hs);
-            }
-
-            const rows = Object.entries(tbl).sort((x,y) =>
-                y[1].pts - x[1].pts || (y[1].GF-y[1].GA)-(x[1].GF-x[1].GA) || y[1].GF - x[1].GF);
+            const { rows } = formTable(completed);
             const anyPlayed = rows.some(r => r[1].P > 0);
             const board = document.getElementById('formBoard');
             if (!anyPlayed) { board.innerHTML = `<div class="state-msg">No completed matches yet &mdash; check back once the action kicks off.</div>`; return; }
@@ -717,7 +838,7 @@
             });
         }
 
-        function renderStrip() { renderFixtures(); renderHistory(); }
+        function renderStrip() { renderFixtures(); renderHistory(); refreshStatsIfOpen(); }
 
         // ============================================================
         //  RENDER: Highlights view
@@ -821,11 +942,17 @@
                 btn.addEventListener('click', () => {
                     const v = btn.dataset.view;
                     document.querySelectorAll('.vtab').forEach(b => b.classList.toggle('active', b === btn));
-                    document.getElementById('view-dashboard').hidden = v !== 'dashboard';
-                    document.getElementById('view-highlights').hidden = v !== 'highlights';
+                    ['dashboard', 'highlights', 'stats'].forEach(name =>
+                        document.getElementById('view-' + name).hidden = v !== name);
                     if (v === 'highlights') renderHighlights();
+                    else if (v === 'stats') renderStats();
                     else fitFixtures();
                 });
+            });
+            // pick-a-person on the My Stats view
+            document.getElementById('statsPicker').addEventListener('click', e => {
+                const chip = e.target.closest('.pick-face');
+                if (chip) showStats(chip.dataset.who);
             });
             // swap the thumbnail facade for a real player only when a YouTube card is clicked
             document.getElementById('hlGrid').addEventListener('click', e => {
@@ -836,6 +963,150 @@
                     title="Match highlights" loading="lazy"
                     allow="autoplay; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>`;
             });
+        }
+
+        // ============================================================
+        //  RENDER: My Stats view (pick a person -> personal breakdown)
+        // ============================================================
+        let statsWho = (() => { try { const w = localStorage.getItem('sweepWho'); return (w && PEOPLE[w]) ? w : null; } catch (e) { return null; } })();
+
+        const bigFlag = code => `https://flagcdn.com/w320/${code}.png`;
+        function renderStatsPicker() {
+            const order = Object.keys(PEOPLE); // fixed roster order, never shuffles
+            document.getElementById('statsPicker').innerHTML =
+                `<div class="stats-pick-grid">` +
+                order.map(n => {
+                    const winner = TEAMS.find(t => t.owner === n && t.tier === 'Winners');
+                    return `<button class="pick-face" data-who="${n}" style="--p-color:${PEOPLE[n]}">
+                        <span class="pf-circle">${winner ? `<img src="${bigFlag(winner.code)}" alt="" loading="lazy">` : ''}</span>
+                        <span class="pf-name">${n}</span>
+                    </button>`;
+                }).join('') +
+                `</div>`;
+        }
+        function showStats(name) {
+            statsWho = name;
+            try { localStorage.setItem('sweepWho', name); } catch (e) { /* ignore */ }
+            document.getElementById('statsPicker').hidden = true;
+            document.getElementById('statsDetail').hidden = false;
+            renderStatsFor(name);
+        }
+        function renderStats() {
+            renderStatsPicker();
+            if (statsWho) { showStats(statsWho); }
+            else { document.getElementById('statsPicker').hidden = false; document.getElementById('statsDetail').hidden = true; }
+        }
+        function refreshStatsIfOpen() {
+            const v = document.getElementById('view-stats'), det = document.getElementById('statsDetail');
+            if (statsWho && v && !v.hidden && det && !det.hidden) renderStatsFor(statsWho);
+        }
+
+        const scCard = (label, val, sub) =>
+            `<div class="stat-card"><div class="sc-label">${label}</div><div class="sc-val">${val}</div><div class="sc-sub">${sub || ''}</div></div>`;
+        const scTeam = (label, t, sub) =>
+            `<div class="stat-card"><div class="sc-label">${label}</div><div class="sc-val sc-team"><img class="flag sm" src="${flagUrl(t.code)}" alt="">${t.name}</div><div class="sc-sub">${sub || (t.odds ? 'odds ' + t.odds : '')}</div></div>`;
+
+        function renderStatsFor(name) {
+            const col = PEOPLE[name];
+            const completed = FIX.completed || [];
+            const isMine = ev => { const h = findTeam(ev.strHomeTeam), a = findTeam(ev.strAwayTeam); return (h && h.owner === name) || (a && a.owner === name); };
+            const myCompleted = completed.filter(isMine).sort((a, b) => (prettyDate(b).ms || 0) - (prettyDate(a).ms || 0));
+            const myUpcoming = (FIX.upcoming || []).filter(isMine).sort((a, b) => (prettyDate(a).ms || 0) - (prettyDate(b).ms || 0));
+            const myTeams = TEAMS.filter(t => t.owner === name);
+
+            // odds standing
+            const S = oddsReady ? peopleStandings() : null;
+            const oddsRank = S ? S.rows.findIndex(r => r[0] === name) + 1 : null;
+            const oddsPct = S ? S.per[name].p * 100 : null;
+
+            // group-stage standing
+            const { tbl, rows: formRows } = formTable(completed);
+            const me = tbl[name];
+            const anyPlayed = formRows.some(r => r[1].P > 0);
+            const formRank = formRows.findIndex(r => r[0] === name) + 1;
+            const gd = me.GF - me.GA;
+
+            // per-team records + head-to-head
+            const trec = teamRecords(completed);
+            const h2h = headToHead(completed);
+            let bunny = null, bunnyN = 0, nem = null, nemN = 0, hRows = [];
+            for (const opp in PEOPLE) {
+                if (opp === name) continue;
+                const w = h2h[name][opp] || 0, l = h2h[opp][name] || 0;
+                if (w > bunnyN) { bunnyN = w; bunny = opp; }
+                if (l > nemN) { nemN = l; nem = opp; }
+                if (w || l) hRows.push({ opp, w, l });
+            }
+            hRows.sort((a, b) => (b.w + b.l) - (a.w + a.l) || (b.w - b.l) - (a.w - a.l));
+
+            // best title hope + most in-form team
+            const byOdds = myTeams.slice().sort((a, b) => (a.dec || 1e9) - (b.dec || 1e9));
+            const bestHope = oddsReady ? byOdds[0] : null;
+            const played = myTeams.map(t => ({ t, r: trec[t.name] })).filter(x => x.r && x.r.P);
+            const formTeam = played.slice().sort((a, b) => b.r.pts - a.r.pts || (b.r.GF - b.r.GA) - (a.r.GF - a.r.GA) || b.r.GF - a.r.GF)[0] || null;
+
+            const teamsSorted = myTeams.slice().sort((a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier] || (a.dec || 1e9) - (b.dec || 1e9));
+
+            document.getElementById('statsDetail').innerHTML = `
+              <div class="stats-top">
+                  <h2 class="stats-name"><span class="dot" style="background:${col}"></span>${name}</h2>
+                  <button class="stats-change" id="statsChange">&#8617; change</button>
+              </div>
+
+              <div class="stat-cards">
+                  ${scCard('Title chance', oddsPct != null ? oddsPct.toFixed(1) + '%' : '&mdash;', oddsRank ? `#${oddsRank} of 8 in odds` : 'odds loading')}
+                  ${scCard('Group stage', anyPlayed ? `#${formRank}<small> of 8</small>` : '&mdash;', `${me.pts} pts`)}
+                  ${scCard('Record', `${me.W}<span class="sc-sep">-</span>${me.D}<span class="sc-sep">-</span>${me.L}`, `${me.P} played &middot; W-D-L`)}
+                  ${scCard('Goals', `${me.GF}:${me.GA}`, `${gd >= 0 ? '+' : ''}${gd} diff`)}
+                  ${bestHope ? scTeam('Best hope', bestHope) : ''}
+                  ${formTeam ? scTeam('In form', formTeam.t, `${formTeam.r.W}W ${formTeam.r.D}D ${formTeam.r.L}L`) : ''}
+              </div>
+
+              <div class="stats-sec-h">Head to head</div>
+              <div class="h2h-cards">
+                  <div class="h2h-card good">
+                      <div class="h2h-lbl">Victim &mdash; you beat them most</div>
+                      ${bunny ? `<div class="h2h-who"><span class="dot" style="background:${PEOPLE[bunny]}"></span>${bunny}</div><div class="h2h-num">${bunnyN}&times;</div>` : `<div class="h2h-none">no wins over anyone yet</div>`}
+                  </div>
+                  <div class="h2h-card bad">
+                      <div class="h2h-lbl">Owns you &mdash; beats you most</div>
+                      ${nem ? `<div class="h2h-who"><span class="dot" style="background:${PEOPLE[nem]}"></span>${nem}</div><div class="h2h-num">${nemN}&times;</div>` : `<div class="h2h-none">nobody&rsquo;s got you yet</div>`}
+                  </div>
+              </div>
+              ${hRows.length ? `<div class="h2h-table">${hRows.map(r => `
+                  <div class="h2h-row">
+                      <span class="cname"><span class="dot" style="background:${PEOPLE[r.opp]}"></span>${r.opp}</span>
+                      <span class="h2h-rec"><b class="w">${r.w}W</b><b class="l">${r.l}L</b></span>
+                  </div>`).join('')}</div>` : `<div class="state-msg">No head-to-heads yet &mdash; needs a result where your team meets theirs.</div>`}
+
+              <div class="stats-sec-h">Your teams</div>
+              <div class="stats-teams">${teamsSorted.map(t => {
+                  const r = trec[t.name];
+                  const rec = r && r.P ? `${r.W}W ${r.D}D ${r.L}L` : '&mdash;';
+                  return `<div class="st-team">
+                      <img class="flag sm" src="${flagUrl(t.code)}" alt="" loading="lazy">
+                      <span class="tr-name">${t.name}</span>
+                      <span class="tier-badge tier-${t.tier}">${t.tier}</span>
+                      <span class="st-rec">${rec}</span>
+                      <span class="tr-odds">${t.odds || 'N/A'}</span>
+                  </div>`;
+              }).join('')}</div>
+
+              <div class="stats-cols">
+                  <div class="stats-col">
+                      <div class="stats-sec-h">Your upcoming</div>
+                      <div class="matches">${myUpcoming.length ? myUpcoming.map(timeMatch).join('') : `<div class="state-msg">No upcoming fixtures.</div>`}</div>
+                  </div>
+                  <div class="stats-col">
+                      <div class="stats-sec-h">Your results</div>
+                      <div class="matches">${myCompleted.length ? myCompleted.map(scoreMatch).join('') : `<div class="state-msg">No results yet.</div>`}</div>
+                  </div>
+              </div>`;
+
+            document.getElementById('statsChange').onclick = () => {
+                document.getElementById('statsDetail').hidden = true;
+                document.getElementById('statsPicker').hidden = false;
+            };
         }
 
         // ============================================================
@@ -860,6 +1131,7 @@
                         </div>`).join('')}
                 </div>`;
             }).join('');
+            refreshStatsIfOpen();
         }
 
         // ============================================================
