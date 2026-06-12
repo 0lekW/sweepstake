@@ -20,7 +20,7 @@
             .sweep-head {
                 display: flex;
                 flex-wrap: wrap;
-                align-items: baseline;
+                align-items: center;
                 justify-content: space-between;
                 gap: 0.5rem 1.5rem;
                 border-bottom: 1px solid var(--border-color);
@@ -246,6 +246,52 @@
                 font-family: var(--font-mono);
                 font-size: 0.85rem;
             }
+
+            /* Header view switch (Dashboard / Highlights) */
+            .head-title { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+            .view-tabs { display: inline-flex; gap: 0.3rem; padding: 0.2rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 99px; }
+            .vtab {
+                background: none; border: none; cursor: pointer;
+                font-family: var(--font-sans); font-size: 0.82rem; font-weight: 600;
+                color: var(--text-tertiary);
+                padding: 0.32rem 0.85rem; border-radius: 99px;
+                transition: color var(--transition-fast), background var(--transition-fast);
+            }
+            .vtab:hover { color: var(--text-secondary); }
+            .vtab.active { color: var(--text-primary); background: var(--bg-card-hover); }
+
+            /* Highlights grid */
+            .hl-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+            .hl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr)); gap: 1rem; }
+            .hl-card { margin: 0; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; }
+            .hl-embed { display: block; width: 100%; aspect-ratio: 16 / 9; position: relative; padding: 0; margin: 0; border: 0; background: #000; cursor: pointer; overflow: hidden; }
+            .hl-thumb { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform var(--transition-base), opacity var(--transition-base); }
+            .hl-embed:hover .hl-thumb { transform: scale(1.05); opacity: 0.82; }
+            .hl-play {
+                position: absolute; inset: 0; margin: auto;
+                width: 3.4rem; height: 3.4rem; border-radius: 50%;
+                background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.3);
+                display: grid; place-items: center; transition: background var(--transition-fast);
+            }
+            .hl-embed:hover .hl-play { background: rgba(0,0,0,0.72); }
+            .hl-play::after { content: ""; width: 0; height: 0; margin-left: 4px; border-style: solid; border-width: 0.58rem 0 0.58rem 1rem; border-color: transparent transparent transparent #fff; }
+            .hl-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+            a.hl-embed { text-decoration: none; }
+            .hl-noimg { background: linear-gradient(135deg, #1f1f1f, #111); }
+            .hl-src {
+                position: absolute; left: 0.5rem; bottom: 0.5rem;
+                font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600;
+                letter-spacing: 0.02em; color: #fff;
+                background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.18);
+                padding: 0.12rem 0.4rem; border-radius: 99px;
+            }
+            .hl-cap { padding: 0.6rem 0.75rem 0.7rem; }
+            .hl-teams { display: flex; align-items: center; justify-content: center; gap: 0.6rem; font-size: 0.9rem; }
+            .hl-side { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
+            .hl-side b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+            .hl-side.away { flex-direction: row-reverse; }
+            .hl-score { font-family: var(--font-mono); font-weight: 700; font-size: 1rem; flex: 0 0 auto; }
+            .hl-meta { text-align: center; font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-tertiary); margin-top: 0.35rem; }
         </style>
     </head>
     <body>
@@ -253,12 +299,17 @@
 
         <main class="sweep-wrap">
             <header class="sweep-head">
-                <div>
+                <div class="head-title">
                     <h1>World Cup Sweepstake</h1>
+                    <nav class="view-tabs">
+                        <button class="vtab active" data-view="dashboard">Dashboard</button>
+                        <button class="vtab" data-view="highlights">Highlights</button>
+                    </nav>
                 </div>
                 <div class="meta" id="updated">Loading live data&hellip;</div>
             </header>
 
+            <div id="view-dashboard" class="view">
             <section class="panel summary-panel">
                 <div class="summary-head">
                     <h2>Bookies Odds <span class="head-time" id="oddsBarTime"></span></h2>
@@ -313,6 +364,13 @@
                 </div>
                 <div class="breakdown" id="oddsBoard"></div>
             </section>
+            </div><!-- /view-dashboard -->
+
+            <div id="view-highlights" class="view" hidden>
+                <section class="panel">
+                    <div id="hlGrid"></div>
+                </section>
+            </div><!-- /view-highlights -->
         </main>
 
         <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
@@ -662,6 +720,125 @@
         function renderStrip() { renderFixtures(); renderHistory(); }
 
         // ============================================================
+        //  RENDER: Highlights view
+        //  Clips come from the homelab feed (FotMob -> official match
+        //  highlights). Falls back to a local highlights.json, then to
+        //  TheSportsDB's strVideo field baked into the live results.
+        // ============================================================
+        const HL_FEEDS = [
+            'https://odds.olek.co.nz/highlights.json', // homelab wc-odds service (same tunnel as odds)
+        ];
+        let HL = [];           // unified clip list, newest first
+        let hlLoaded = false;  // becomes true once a source has been resolved
+
+        function ytId(url) {
+            if (!url) return null;
+            const m = String(url).match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/))([\w-]{11})/);
+            return m ? m[1] : null;
+        }
+        function hlSide(name) {
+            const t = findTeam(name);
+            return {
+                disp: t ? t.name : (name || ''),
+                flag: t ? `<img class="flag sm" src="${flagUrl(t.code)}" alt="" loading="lazy">` : `<span class="flag sm"></span>`,
+            };
+        }
+        const clipMs = c => (c.kickoff ? Date.parse(c.kickoff) : 0) || 0;
+
+        // last-resort: build clips from TheSportsDB strVideo already in the results
+        function hlFromResults() {
+            return (FIX.completed || []).map(ev => {
+                const id = ytId(ev.strVideo);
+                if (!id) return null;
+                return {
+                    home: ev.strHomeTeam, away: ev.strAwayTeam,
+                    homeScore: ev.intHomeScore, awayScore: ev.intAwayScore,
+                    kickoff: prettyDate(ev).ms ? new Date(prettyDate(ev).ms).toISOString() : null,
+                    url: `https://www.youtube.com/watch?v=${id}`, source: 'youtube',
+                    thumb: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+                };
+            }).filter(Boolean);
+        }
+
+        async function loadHighlights() {
+            for (const feed of HL_FEEDS) {
+                try {
+                    const r = await fetch(feed, { cache: 'no-store' });
+                    if (!r.ok) continue;
+                    const data = await r.json();
+                    if (data && Array.isArray(data.clips) && data.clips.length) {
+                        HL = data.clips.slice().sort((a, b) => clipMs(b) - clipMs(a));
+                        hlLoaded = true; renderHighlights();
+                        return;
+                    }
+                } catch (e) { /* try next feed */ }
+            }
+            HL = hlFromResults().sort((a, b) => clipMs(b) - clipMs(a));
+            hlLoaded = true; renderHighlights();
+        }
+
+        function renderHighlights() {
+            const grid = document.getElementById('hlGrid');
+            const cnt = document.getElementById('hlCount');
+            if (!grid) return;
+            if (cnt) cnt.textContent = HL.length ? `${HL.length} clip${HL.length === 1 ? '' : 's'}` : '';
+            if (!HL.length) {
+                grid.className = '';
+                grid.innerHTML = hlLoaded
+                    ? `<div class="state-msg">No highlight clips yet &mdash; they appear automatically once matches are played and the official clips are published.</div>`
+                    : `<div class="state-msg">Loading highlights&hellip;</div>`;
+                return;
+            }
+            grid.className = 'hl-grid';
+            grid.innerHTML = HL.map(c => {
+                const h = hlSide(c.home), a = hlSide(c.away);
+                const ms = clipMs(c);
+                const dstr = ms ? new Date(ms).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) : '';
+                const yt = (c.source || '').includes('youtube') ? ytId(c.url) : null;
+                const thumb = c.thumb || (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : '');
+                const img = thumb ? `<img class="hl-thumb" src="${thumb}" alt="" loading="lazy">` : `<span class="hl-thumb hl-noimg"></span>`;
+                // YouTube clips play inline; anything else (e.g. fifa.com) opens at the official source
+                const media = yt
+                    ? `<button class="hl-embed" data-yt="${yt}" aria-label="Play highlights">${img}<span class="hl-play"></span></button>`
+                    : `<a class="hl-embed" href="${c.url}" target="_blank" rel="noopener noreferrer" aria-label="Watch highlights on ${c.source || 'the official site'}">${img}<span class="hl-play"></span><span class="hl-src">${(c.source || 'watch').replace(/^www\./, '')} &#8599;</span></a>`;
+                return `<figure class="hl-card">
+                    ${media}
+                    <figcaption class="hl-cap">
+                        <div class="hl-teams">
+                            <span class="hl-side">${h.flag}<b>${h.disp}</b></span>
+                            <span class="hl-score">${c.homeScore}&ndash;${c.awayScore}</span>
+                            <span class="hl-side away">${a.flag}<b>${a.disp}</b></span>
+                        </div>
+                        <div class="hl-meta">${dstr}</div>
+                    </figcaption>
+                </figure>`;
+            }).join('');
+        }
+
+        // ----- header view switching + click-to-load embeds -----
+        function setupViews() {
+            document.querySelectorAll('.vtab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const v = btn.dataset.view;
+                    document.querySelectorAll('.vtab').forEach(b => b.classList.toggle('active', b === btn));
+                    document.getElementById('view-dashboard').hidden = v !== 'dashboard';
+                    document.getElementById('view-highlights').hidden = v !== 'highlights';
+                    if (v === 'highlights') renderHighlights();
+                    else fitFixtures();
+                });
+            });
+            // swap the thumbnail facade for a real player only when a YouTube card is clicked
+            document.getElementById('hlGrid').addEventListener('click', e => {
+                const btn = e.target.closest('.hl-embed');
+                if (!btn || !btn.dataset.yt || btn.dataset.loaded) return;
+                btn.dataset.loaded = '1';
+                btn.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${btn.dataset.yt}?autoplay=1&rel=0"
+                    title="Match highlights" loading="lazy"
+                    allow="autoplay; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>`;
+            });
+        }
+
+        // ============================================================
         //  RENDER: draft cards
         // ============================================================
         function renderDraft() {
@@ -821,6 +998,7 @@
         document.getElementById('toFullOdds').onclick = () =>
             document.getElementById('oddsPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
         setupTabs();
+        setupViews();
         renderOdds();
         renderDraft();
         loadOdds();
@@ -828,7 +1006,7 @@
             console.error(err);
             document.getElementById('updated').textContent = 'Live match data unavailable right now — odds & draft are always up to date.';
             renderForm([]); FIX.completed = []; FIX.upcoming = []; FIX.todayDone = []; renderStrip();
-        });
+        }).finally(loadHighlights);
         </script>
     </body>
 </html>
