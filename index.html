@@ -172,6 +172,21 @@
             .head-time { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 400; color: var(--text-tertiary); margin-left: 0.4rem; }
             .summary-link { background: none; border: none; cursor: pointer; font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-tertiary); padding: 0; }
             .summary-link:hover { color: var(--text-secondary); }
+            .summary-controls { display: flex; align-items: center; gap: 1rem; }
+            .odds-tabs { display: inline-flex; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 2px; }
+            .odds-tab { background: none; border: none; cursor: pointer; font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-tertiary); padding: 0.25rem 0.6rem; border-radius: calc(var(--radius-sm) - 1px); white-space: nowrap; }
+            .odds-tab.active { background: var(--bg-card); color: var(--text-primary); box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+            .odds-tab:hover:not(.active) { color: var(--text-secondary); }
+
+            /* multi-line "odds over time" chart */
+            .trend-chart { width: 100%; height: auto; display: block; }
+            .trend-chart .grid { stroke: var(--border-color); stroke-width: 1; vector-effect: non-scaling-stroke; }
+            .trend-chart .axlbl { font-family: var(--font-mono); font-size: 9px; fill: var(--text-tertiary); }
+            .trend-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; transition: opacity 0.15s, stroke-width 0.15s; }
+            .trend-legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; margin-top: 0.7rem; }
+            .trend-leg { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; cursor: default; }
+            .trend-leg .dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; flex: 0 0 auto; }
+            .trend-leg .tl-pct { font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-tertiary); }
 
             .podium-layout { display: flex; gap: 1.75rem; align-items: flex-end; }
             @media (max-width: 640px) { .podium-layout { flex-direction: column; align-items: stretch; gap: 1.1rem; } }
@@ -494,9 +509,16 @@
             <section class="panel summary-panel">
                 <div class="summary-head">
                     <h2>Bookies Odds <span class="head-time" id="oddsBarTime"></span></h2>
-                    <button class="summary-link" id="toFullOdds">Full breakdown</button>
+                    <div class="summary-controls">
+                        <div class="odds-tabs">
+                            <button class="odds-tab active" data-otab="now">Now</button>
+                            <button class="odds-tab" data-otab="trend">Over time</button>
+                        </div>
+                        <button class="summary-link" id="toFullOdds">Full breakdown</button>
+                    </div>
                 </div>
                 <div id="oddsBar"></div>
+                <div id="oddsTrend" hidden></div>
             </section>
 
             <div class="layout">
@@ -1171,6 +1193,8 @@
                 ODDS_HISTORY = Array.isArray(d.points) ? d.points : [];
             } catch (e) { ODDS_HISTORY = []; }
             if (oddsReady) renderOdds();   // surface the trend card under each breakdown column
+            const tr = document.getElementById('oddsTrend');
+            if (tr && !tr.hidden) renderOddsTrend();
             refreshStatsIfOpen();
         }
         function sparkline(series, color) {
@@ -1184,6 +1208,87 @@
                 <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
                 <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2.2" fill="${color}"/>
             </svg>`;
+        }
+
+        // multi-line chart: every player's title chance across the odds-history snapshots
+        function oddsTrendChart() {
+            const pts = ODDS_HISTORY || [];
+            if (pts.length < 2) return `<div class="state-msg">Not enough history yet &mdash; the trend fills in as the odds move over time.</div>`;
+
+            const people = Object.keys(PEOPLE);
+            const times = pts.map(h => new Date(h.t).getTime());
+            const series = {};
+            people.forEach(p => series[p] = pts.map(h => (standingsFrom(h.teams)[p] || 0) * 100));
+
+            const maxV = Math.max(...people.flatMap(p => series[p]));
+            const yMax = Math.max(5, Math.ceil(maxV / 5) * 5);
+
+            const W = 640, H = 240, L = 36, R = 12, T = 12, B = 22;
+            const px0 = L, px1 = W - R, py0 = T, py1 = H - B;
+            const tMin = times[0], tMax = times[times.length - 1], tRange = (tMax - tMin) || 1;
+            const X = t => px0 + (t - tMin) / tRange * (px1 - px0);
+            const Y = v => py1 - (v / yMax) * (py1 - py0);
+
+            // horizontal gridlines + % labels
+            const ticks = 4;
+            let grid = '';
+            for (let i = 0; i <= ticks; i++) {
+                const v = (yMax / ticks) * i, y = Y(v).toFixed(1);
+                grid += `<line class="grid" x1="${px0}" y1="${y}" x2="${px1}" y2="${y}"/>`
+                      + `<text class="axlbl" x="${px0 - 6}" y="${y}" text-anchor="end" dominant-baseline="middle">${v.toFixed(0)}%</text>`;
+            }
+
+            // x-axis date labels
+            const fmt = ms => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+            const nLbl = Math.min(4, pts.length);
+            let xlabels = '', lastLbl = '';
+            for (let i = 0; i < nLbl; i++) {
+                const idx = Math.round(i / (nLbl - 1) * (pts.length - 1));
+                const txt = fmt(times[idx]);
+                if (txt === lastLbl) continue;   // skip repeats when snapshots span <1 day
+                lastLbl = txt;
+                const x = X(times[idx]);
+                const anchor = i === 0 ? 'start' : i === nLbl - 1 ? 'end' : 'middle';
+                xlabels += `<text class="axlbl" x="${x.toFixed(1)}" y="${H - 6}" text-anchor="${anchor}">${txt}</text>`;
+            }
+
+            // one line per person; draw the leaders last so they sit on top
+            const ordered = people.slice().sort((a, b) => series[a][series[a].length - 1] - series[b][series[b].length - 1]);
+            const lines = ordered.map(p => {
+                const pp = series[p].map((v, i) => `${X(times[i]).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+                const last = series[p][series[p].length - 1];
+                return `<polyline class="trend-line" data-person="${p}" points="${pp}" stroke="${PEOPLE[p]}"><title>${p}</title></polyline>`
+                     + `<circle data-person="${p}" cx="${X(tMax).toFixed(1)}" cy="${Y(last).toFixed(1)}" r="2.6" fill="${PEOPLE[p]}"/>`;
+            }).join('');
+
+            const svg = `<svg class="trend-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Each player's title chance over time">${grid}${xlabels}${lines}</svg>`;
+
+            // legend ordered by current chance, hover to isolate a line
+            const legend = people.slice().sort((a, b) => series[b][series[b].length - 1] - series[a][series[a].length - 1]).map(p =>
+                `<span class="trend-leg" data-person="${p}"><span class="dot" style="background:${PEOPLE[p]}"></span>${p}<span class="tl-pct">${series[p][series[p].length - 1].toFixed(1)}%</span></span>`).join('');
+
+            return svg + `<div class="trend-legend">${legend}</div>`;
+        }
+
+        function renderOddsTrend() {
+            const el = document.getElementById('oddsTrend');
+            if (!el) return;
+            el.innerHTML = oddsTrendChart();
+            // hover a legend chip (or line) to spotlight that player
+            const nodes = el.querySelectorAll('[data-person]');
+            const legs = el.querySelectorAll('.trend-leg');
+            const spotlight = name => {
+                nodes.forEach(n => {
+                    const on = !name || n.dataset.person === name;
+                    n.style.opacity = on ? '1' : '0.12';
+                    if (n.tagName === 'polyline') n.style.strokeWidth = (name && on) ? '3' : '';
+                });
+                legs.forEach(l => l.style.opacity = (!name || l.dataset.person === name) ? '1' : '0.4');
+            };
+            legs.forEach(l => {
+                l.addEventListener('mouseenter', () => spotlight(l.dataset.person));
+                l.addEventListener('mouseleave', () => spotlight(null));
+            });
         }
 
         function renderStatsFor(name) {
@@ -1571,6 +1676,17 @@
         // ---- boot ----
         document.getElementById('toFullOdds').onclick = () =>
             document.getElementById('oddsPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // "Now" / "Over time" toggle on the Bookies Odds widget
+        (() => {
+            const tabs = document.querySelectorAll('.odds-tab');
+            const bar = document.getElementById('oddsBar'), trend = document.getElementById('oddsTrend');
+            tabs.forEach(t => t.onclick = () => {
+                tabs.forEach(x => x.classList.toggle('active', x === t));
+                const showTrend = t.dataset.otab === 'trend';
+                bar.hidden = showTrend; trend.hidden = !showTrend;
+                if (showTrend) renderOddsTrend();
+            });
+        })();
         setupTabs();
         setupViews();
         setupStripDrawer();
