@@ -487,6 +487,113 @@
             .trend-delta.down { color: #f87171; }
             .spark { display: block; width: 100%; height: 3rem; }
             .trend-foot { font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-tertiary); margin-top: 0.3rem; }
+
+            /* ---- match detail popup ---- */
+            .match.clickable { grid-template-columns: 1fr auto 1fr auto; cursor: pointer; transition: border-color 0.12s, background 0.12s, transform 0.08s; }
+            .match.clickable::after { content: '\203a'; justify-self: end; color: var(--text-tertiary); font-size: 1.3rem; line-height: 1; font-family: var(--font-sans); padding-left: 0.15rem; transition: color 0.12s, transform 0.12s; }
+            .match.clickable:hover { border-color: color-mix(in srgb, var(--accent-primary) 45%, var(--border-color)); }
+            .match.clickable:hover::after { color: var(--accent-primary); transform: translateX(2px); }
+            .match.clickable:active { transform: scale(0.985); background: color-mix(in srgb, var(--accent-primary) 9%, var(--bg-secondary)); }
+            .tap-hint { font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-tertiary); margin: 0.1rem 0 0.7rem; }
+            .mm-backdrop { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); display: flex; align-items: flex-start; justify-content: center; padding: 2.5rem 1rem; overflow-y: auto; }
+            .mm-backdrop[hidden] { display: none; }
+            @media (max-width: 560px) { .mm-backdrop { padding: 0; } }
+            .mm-card { position: relative; width: 100%; max-width: 40rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+            @media (max-width: 560px) { .mm-card { min-height: 100%; border-radius: 0; border: none; } }
+            .mm-close { position: absolute; top: 0.5rem; right: 0.6rem; z-index: 2; background: none; border: none; color: var(--text-tertiary); font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0.2rem 0.5rem; }
+            .mm-close:hover { color: var(--text-primary); }
+            .mm-state { padding: 3rem 1.5rem; text-align: center; color: var(--text-tertiary); font-family: var(--font-mono); font-size: 0.85rem; }
+
+            .mm-head { padding: 1.1rem 1.2rem 0.9rem; border-bottom: 1px solid var(--border-color); }
+            .mm-score { display: flex; align-items: center; justify-content: center; gap: 0.8rem; }
+            .mm-side { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; flex: 1 1 0; min-width: 0; }
+            .mm-side .flag { width: 2.1rem; height: auto; border-radius: 3px; }
+            .mm-side .mm-tn { font-weight: 600; font-size: 0.95rem; text-align: center; }
+            .mm-side .m-owner { font-size: 0.7rem; }
+            .mm-sc { font-family: var(--font-mono); font-weight: 700; font-size: 2rem; flex: 0 0 auto; }
+            .mm-sc .vs { font-size: 1rem; color: var(--text-tertiary); font-weight: 400; }
+            .mm-status { text-align: center; font-family: var(--font-mono); font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); margin-top: 0.6rem; }
+            .mm-status.live { color: var(--accent-success); }
+
+            .mm-tabs { display: flex; gap: 0.2rem; padding: 0.6rem 1.2rem 0; border-bottom: 1px solid var(--border-color); }
+            .mm-tab { background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-tertiary); padding: 0.45rem 0.6rem; }
+            .mm-tab.active { color: var(--text-primary); border-bottom-color: var(--accent-primary); }
+            .mm-pane { padding: 1rem 1.2rem 1.3rem; }
+
+            /* goal/card/sub timeline */
+            .mm-tl { display: flex; flex-direction: column; gap: 0.05rem; }
+            .mm-ev { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 0.6rem; padding: 0.3rem 0; font-size: 0.85rem; }
+            .mm-ev .ev-min { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-tertiary); text-align: center; min-width: 2.4rem; }
+            .mm-ev .ev-h { text-align: right; }
+            .mm-ev .ev-a { text-align: left; }
+            .mm-ev .ev-ico { margin: 0 0.3rem; }
+            .mm-ev .ev-sub { color: var(--text-secondary); font-size: 0.78rem; }
+            .mm-ev .ev-off { color: var(--text-tertiary); }
+            .mm-half { text-align: center; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.05em; color: var(--text-tertiary); padding: 0.3rem 0; }
+
+            /* motm */
+            .mm-motm { display: flex; align-items: center; gap: 0.6rem; background: color-mix(in srgb, #fcd34d 12%, var(--bg-secondary)); border: 1px solid color-mix(in srgb, #fcd34d 35%, var(--border-color)); border-radius: var(--radius-sm); padding: 0.55rem 0.75rem; margin-bottom: 1rem; }
+            .mm-motm .star { font-size: 1.1rem; }
+            .mm-motm .mm-motm-n { font-weight: 600; }
+            .mm-motm .mm-rate { margin-left: auto; }
+
+            /* rating chips */
+            /* FotMob's own rating palette: green (good) → orange (avg) → red (poor). */
+            .mm-rate { font-family: var(--font-mono); font-weight: 700; font-size: 0.78rem; color: #fff; background: #64748b; border-radius: 4px; padding: 0.1rem 0.35rem; }
+            .mm-rate.r-hi { background: #0b8a3c; } .mm-rate.r-mid { background: #46b25f; } .mm-rate.r-low { background: #e29a2e; } .mm-rate.r-bad { background: #d64541; }
+
+            /* pitch view */
+            .mm-pitch { position: relative; width: 100%; aspect-ratio: 5 / 7; margin: 0.2rem 0 0.6rem; border-radius: var(--radius-sm); overflow: hidden;
+                background: repeating-linear-gradient(to bottom, #1f7a43 0 9.09%, #1c7340 9.09% 18.18%); border: 1px solid rgba(255,255,255,0.12); }
+            .mm-pmark { position: absolute; border: 1.5px solid rgba(255,255,255,0.28); box-sizing: border-box; }
+            .mm-pmark.halfway { left: 0; right: 0; top: 50%; height: 0; border-width: 1.5px 0 0; }
+            .mm-pmark.circle { left: 50%; top: 50%; width: 30%; aspect-ratio: 1; border-radius: 50%; transform: translate(-50%,-50%); }
+            .mm-pmark.box-t { left: 25%; width: 50%; top: 0; height: 14%; border-top: 0; }
+            .mm-pmark.box-b { left: 25%; width: 50%; bottom: 0; height: 14%; border-bottom: 0; }
+            .mm-side-lbl { position: absolute; left: 0.5rem; z-index: 3; display: flex; align-items: center; gap: 0.35rem; font-family: var(--font-mono); font-size: 0.66rem; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.7); }
+            .mm-side-lbl.top { top: 0.4rem; } .mm-side-lbl.bot { bottom: 0.4rem; }
+
+            .mm-chip { position: absolute; transform: translate(-50%,-50%); width: 17%; display: flex; flex-direction: column; align-items: center; z-index: 2; }
+            .chip-ph { position: relative; width: 2.3rem; height: 2.3rem; border-radius: 50%; border: 2px solid var(--ring,#fff); background: #0f172a; display: flex; align-items: center; justify-content: center; }
+            @media (max-width: 560px) { .chip-ph { width: 1.95rem; height: 1.95rem; } }
+            .chip-ph .chip-init { font-size: 0.7rem; font-weight: 600; color: #cbd5e1; }
+            .chip-ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; background: #1e293b; border-radius: 50%; }
+            .chip-ph img.noimg { display: none; }
+            .chip-r { position: absolute; bottom: -0.35rem; right: -0.4rem; z-index: 4; font-size: 0.58rem; padding: 0.02rem 0.2rem; border: 1px solid rgba(0,0,0,0.5); box-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+            .chip-n { margin-top: 0.45rem; font-size: 0.6rem; line-height: 1.1; color: #fff; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,0.85); max-width: 4.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .chip-ico { font-size: 0.52rem; }
+
+            .mm-bench { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1rem; }
+            .mm-bench-h { font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); margin-bottom: 0.3rem; }
+            .mm-bench .b-row { display: flex; align-items: center; gap: 0.4rem; padding: 0.18rem 0; }
+            .mm-bench .b-ph { width: 1.5rem; height: 1.5rem; border-radius: 50%; overflow: hidden; background: #1e293b; flex: 0 0 auto; position: relative; border: 1px solid var(--ring,var(--border-color)); display: flex; align-items: center; justify-content: center; }
+            .mm-bench .b-ph .chip-init { color: #cbd5e1; }
+            .mm-bench .b-ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+            .mm-bench .b-ph img.noimg { display: none; }
+            .mm-bench .b-n { font-size: 0.74rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .mm-bench .b-r { margin-left: auto; flex: 0 0 auto; }
+            .mm-coach { font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-tertiary); margin-top: 0.5rem; }
+
+            .mm-xi { margin-bottom: 1rem; }
+            .mm-xi-h { display: flex; align-items: center; gap: 0.45rem; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem; }
+            .mm-xi-h .mm-form { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-tertiary); font-weight: 400; }
+            .mm-xi-h .mm-trating { margin-left: auto; }
+            .mm-prow { display: flex; align-items: center; gap: 0.5rem; padding: 0.28rem 0; border-bottom: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent); }
+            .mm-prow .pp-sh { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-tertiary); width: 1.5rem; text-align: center; flex: 0 0 auto; }
+            .mm-prow .pp-n { font-size: 0.86rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .mm-prow .pp-ico { font-size: 0.78rem; color: var(--text-tertiary); }
+            .mm-prow .pp-r { margin-left: auto; flex: 0 0 auto; }
+            .mm-subs-lbl { font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); margin: 0.6rem 0 0.2rem; }
+
+            /* stat bars */
+            .mm-stat { margin-bottom: 0.7rem; }
+            .mm-stat-top { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.74rem; margin-bottom: 0.2rem; }
+            .mm-stat-top .st-t { color: var(--text-tertiary); font-size: 0.68rem; }
+            .mm-bar { display: flex; height: 5px; border-radius: 3px; overflow: hidden; background: var(--bg-secondary); }
+            .mm-bar .b-h { background: var(--accent-primary); }
+            .mm-bar .b-a { background: #64748b; margin-left: auto; }
+            .mm-info { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.8rem; font-size: 0.8rem; color: var(--text-secondary); margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid var(--border-color); }
+            .mm-info dt { color: var(--text-tertiary); font-family: var(--font-mono); font-size: 0.7rem; }
         </style>
     </head>
     <body>
@@ -556,6 +663,7 @@
                             <button class="tab active" data-tab="fixtures">Fixtures</button>
                             <button class="tab" data-tab="history">History</button>
                         </div>
+                        <div class="tap-hint">Tap a match for lineups &middot; ratings &middot; stats</div>
                         <div id="tab-fixtures" class="tab-pane"></div>
                         <div id="tab-history" class="tab-pane" hidden></div>
                     </section>
@@ -588,6 +696,14 @@
                 <div id="statsDetail" class="panel" hidden></div>
             </div><!-- /view-stats -->
         </main>
+
+        <!-- Match detail popup (scorers, player ratings, key stats) -->
+        <div class="mm-backdrop" id="matchModal" hidden>
+            <div class="mm-card" role="dialog" aria-modal="true" aria-label="Match detail">
+                <button class="mm-close" id="mmClose" aria-label="Close">&times;</button>
+                <div id="mmBody"></div>
+            </div>
+        </div>
 
         <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
         <script src="/assets/particles-init.js"></script>
@@ -880,7 +996,7 @@
         // ============================================================
         function scoreMatch(ev) {
             const d = prettyDate(ev);
-            return `<div class="match">
+            return `<div class="match clickable" data-mid="${ev.idEvent}">
                 ${teamSide(ev.strHomeTeam,'home')}
                 <div class="m-mid"><div class="m-score">${ev.intHomeScore}&ndash;${ev.intAwayScore}</div><div class="m-date">${d.d}</div></div>
                 ${teamSide(ev.strAwayTeam,'away')}
@@ -888,7 +1004,7 @@
         }
         function timeMatch(ev) {
             const d = prettyDate(ev);
-            return `<div class="match">
+            return `<div class="match clickable" data-mid="${ev.idEvent}">
                 ${teamSide(ev.strHomeTeam,'home')}
                 <div class="m-mid"><div class="m-kick">${d.t||'TBD'}</div><div class="m-date">${d.d}</div></div>
                 ${teamSide(ev.strAwayTeam,'away')}
@@ -905,7 +1021,7 @@
             return s || 'LIVE';
         }
         function liveMatch(ev) {
-            return `<div class="match live">
+            return `<div class="match live clickable" data-mid="${ev.idEvent}">
                 ${teamSide(ev.strHomeTeam,'home')}
                 <div class="m-mid"><div class="m-score">${ev.intHomeScore ?? 0}&ndash;${ev.intAwayScore ?? 0}</div><div class="m-live"><span class="live-dot"></span>${liveText(ev)}</div></div>
                 ${teamSide(ev.strAwayTeam,'away')}
@@ -1460,6 +1576,10 @@
         // Render everything that depends on match data. History is only rebuilt when the
         // finished results actually change, so live polling doesn't reset its filters.
         function renderAfterData() {
+            // index every match by id so the popup can seed its header instantly on tap
+            window.__FIX_BY_ID = {};
+            for (const ev of [...(FIX.completed||[]), ...(FIX.upcoming||[]), ...(FIX.live||[])])
+                if (ev && ev.idEvent != null) window.__FIX_BY_ID[ev.idEvent] = ev;
             renderForm();
             renderFixtures();
             const sig = FIX.completed.map(e => `${e.idEvent}:${e.intHomeScore}-${e.intAwayScore}`).join('|');
@@ -1672,6 +1792,227 @@
             strip.addEventListener('touchend', endDrag);
             strip.addEventListener('touchcancel', endDrag);
         }
+
+        // ============================================================
+        //  MATCH DETAIL POPUP — scorers, player ratings & key stats.
+        //  Fetches a compact per-match blob from the homelab (/match.json?id=),
+        //  which scrapes it from FotMob on demand. window.MATCH_URL overrides the
+        //  endpoint for local testing against a static sample.
+        // ============================================================
+        const MATCH_URL = 'https://odds.olek.co.nz/match.json';
+        let mmTab = 'summary';
+        let mmData = null;
+
+        // FotMob rating colours: ≥8 strong green, 7–8 green, 6–7 orange, <6 red.
+        const rateClass = r => r == null ? '' : r >= 8.0 ? 'r-hi' : r >= 7.0 ? 'r-mid' : r >= 6.0 ? 'r-low' : 'r-bad';
+        const rateChip = r => r == null ? '' : `<span class="mm-rate ${rateClass(r)}">${Number(r).toFixed(1)}</span>`;
+        const cardIco = c => c === 'Red' ? '🟥' : c === 'Yellow' ? '🟨' : '';
+        const goalIco = e => e.ownGoal ? '⚽(OG)' : e.penalty ? '⚽(P)' : '⚽';
+
+        function mmHeadFlag(name) {
+            const t = findTeam(name);
+            return t ? `<img class="flag" src="${flagUrl(t.code)}" alt="" loading="lazy">` : `<span class="flag"></span>`;
+        }
+        function ownerTag(name) {
+            const t = findTeam(name);
+            return t ? `<span class="m-owner"><span class="dot" style="width:0.5rem;height:0.5rem;background:${PEOPLE[t.owner]}"></span>${t.owner}</span>` : '';
+        }
+
+        function mmHeader(d) {
+            const live = d.state === 'live';
+            const statusCls = live ? 'mm-status live' : 'mm-status';
+            const scoreShown = (d.home.score != null && d.away.score != null);
+            const mid = scoreShown
+                ? `<div class="mm-sc">${d.home.score}<span class="vs"> – </span>${d.away.score}</div>`
+                : `<div class="mm-sc"><span class="vs">vs</span></div>`;
+            const label = d.statusLabel || (d.state === 'upcoming' ? 'Not started' : '');
+            return `<div class="mm-head">
+                <div class="mm-score">
+                    <div class="mm-side"><span class="mm-flagwrap">${mmHeadFlag(d.home.name)}</span><span class="mm-tn">${d.home.name||''}</span>${ownerTag(d.home.name)}</div>
+                    ${mid}
+                    <div class="mm-side"><span class="mm-flagwrap">${mmHeadFlag(d.away.name)}</span><span class="mm-tn">${d.away.name||''}</span>${ownerTag(d.away.name)}</div>
+                </div>
+                ${label ? `<div class="${statusCls}">${live ? '<span class="live-dot"></span> ' : ''}${label}</div>` : ''}
+            </div>`;
+        }
+
+        function mmTimeline(d) {
+            const tl = (d.events || []).filter(e => e.type === 'Goal' || e.type === 'Card' || e.type === 'Substitution');
+            if (!tl.length) return d.state === 'upcoming'
+                ? `<div class="mm-state">Not kicked off yet — check back once it's underway.</div>`
+                : `<div class="mm-state">No goals, cards or subs recorded.</div>`;
+            const minStr = e => `${e.time ?? ''}${e.addedTime ? '+' + e.addedTime : ''}'`;
+            const cell = (e) => {
+                if (e.type === 'Goal') return `<b>${goalIco(e)} ${e.player||''}</b>${e.assist ? `<div class="ev-sub">↳ ${e.assist}</div>` : ''}`;
+                if (e.type === 'Card') return `${cardIco(e.card)} ${e.player||''}`;
+                if (e.type === 'Substitution') return `<span class="ev-sub">🔄 ${e.on||''} <span class="ev-off">▸ ${e.off||''}</span></span>`;
+                return '';
+            };
+            return `<div class="mm-tl">${tl.map(e => `
+                <div class="mm-ev">
+                    <div class="ev-h">${e.isHome ? cell(e) : ''}</div>
+                    <div class="ev-min">${minStr(e)}</div>
+                    <div class="ev-a">${e.isHome ? '' : cell(e)}</div>
+                </div>`).join('')}</div>`;
+        }
+
+        function mmStatBars(d) {
+            const stats = d.topStats || [];
+            if (!stats.length) return '';
+            const numOf = v => typeof v === 'number' ? v : (parseFloat(String(v)) || 0);
+            return `<div class="mm-stats">${stats.map(s => {
+                const h = numOf(s.home), a = numOf(s.away), tot = (h + a) || 1;
+                const hp = (h / tot * 100).toFixed(1), ap = (a / tot * 100).toFixed(1);
+                return `<div class="mm-stat">
+                    <div class="mm-stat-top"><span>${s.home ?? '–'}</span><span class="st-t">${s.title}</span><span>${s.away ?? '–'}</span></div>
+                    <div class="mm-bar"><div class="b-h" style="width:${hp}%"></div><div class="b-a" style="width:${ap}%"></div></div>
+                </div>`;
+            }).join('')}</div>`;
+        }
+
+        function mmInfo(d) {
+            const i = d.info || {};
+            const rows = [
+                ['Stadium', i.stadium], ['Referee', i.referee],
+                ['Attendance', i.attendance != null ? Number(i.attendance).toLocaleString() : null],
+                ['Stage', i.tournament],
+            ].filter(([, v]) => v);
+            if (!rows.length) return '';
+            return `<dl class="mm-info">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+        }
+
+        function mmSummary(d) {
+            const motm = d.motm && d.motm.name ? `<div class="mm-motm"><span class="star">⭐</span><span class="mm-motm-n">${d.motm.name}</span><span class="ev-sub">${d.motm.team||''}</span>${rateChip(d.motm.rating)}</div>` : '';
+            return motm + mmTimeline(d) + mmStatBars(d) + mmInfo(d);
+        }
+
+        // owner colour for a team (ties player chips back to the sweepstake)
+        const ownerColor = name => { const t = findTeam(name); return t ? PEOPLE[t.owner] : '#94a3b8'; };
+        const lastName = n => { const p = (n || '').trim().split(/\s+/); return p[p.length - 1] || (n || ''); };
+        const initials = n => (n || '').trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+        const playerPhoto = p => p && p.id != null
+            ? `<img src="https://images.fotmob.com/image_resources/playerimages/${p.id}.png" alt="" loading="lazy" onerror="this.classList.add('noimg')">` : '';
+
+        function chipInner(p, ring) {
+            const icons = `${p.captain ? '<span class="chip-ico">(C)</span> ' : ''}${p.goals ? '⚽'.repeat(Math.min(p.goals, 3)) : ''}${p.card ? cardIco(p.card) : ''}`;
+            const rate = p.rating != null ? `<span class="chip-r mm-rate ${rateClass(p.rating)}">${Number(p.rating).toFixed(1)}</span>` : '';
+            return `<div class="chip-ph" style="--ring:${ring}"><span class="chip-init">${initials(p.name)}</span>${playerPhoto(p)}${rate}</div>
+                <div class="chip-n">${lastName(p.name)} ${icons}</div>`;
+        }
+
+        // both XIs on one portrait pitch: home attacks up (bottom half), away attacks down (top half)
+        function mmPitch(d) {
+            const lu = d.lineups, homeC = ownerColor(d.home.name), awayC = ownerColor(d.away.name);
+            const place = (p, isHome) => {
+                if (p.x == null || p.y == null) return '';
+                const left = isHome ? p.x * 100 : (1 - p.x) * 100;
+                const top = isHome ? (1 - p.y * 0.5) * 100 : (p.y * 0.5) * 100;
+                return `<div class="mm-chip" style="left:${left.toFixed(1)}%;top:${top.toFixed(1)}%">${chipInner(p, isHome ? homeC : awayC)}</div>`;
+            };
+            const tr = s => s && s.teamRating != null ? ` · ${rateChip(s.teamRating)}` : '';
+            return `<div class="mm-pitch">
+                <div class="mm-pmark halfway"></div><div class="mm-pmark circle"></div>
+                <div class="mm-pmark box-t"></div><div class="mm-pmark box-b"></div>
+                <div class="mm-side-lbl top"><span class="dot" style="background:${awayC}"></span>${d.away.name || ''}${tr(lu.away)}</div>
+                <div class="mm-side-lbl bot"><span class="dot" style="background:${homeC}"></span>${d.home.name || ''}${tr(lu.home)}</div>
+                ${(lu.away?.starters || []).map(p => place(p, false)).join('')}
+                ${(lu.home?.starters || []).map(p => place(p, true)).join('')}
+            </div>`;
+        }
+
+        function benchSide(side, ring) {
+            if (!side) return '';
+            const subs = (side.subs || []).filter(p => p.subIn != null || p.rating != null)
+                .sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+            return `<div class="mm-bench-col">
+                <div class="mm-bench-h">${side.name || ''} · subs</div>
+                ${subs.length ? subs.map(p => `<div class="b-row">
+                    <span class="b-ph" style="--ring:${ring}"><span class="chip-init" style="font-size:0.55rem">${initials(p.name)}</span>${playerPhoto(p)}</span>
+                    <span class="b-n">${p.name || ''}${p.subIn ? ` <span class="chip-ico">▴${p.subIn}'</span>` : ''}${p.goals ? ' ⚽' : ''}${p.card ? ' ' + cardIco(p.card) : ''}</span>
+                    ${rateChip(p.rating)}
+                </div>`).join('') : `<div class="b-row" style="color:var(--text-tertiary)">No subs used</div>`}
+                ${side.coach ? `<div class="mm-coach">Coach: ${side.coach}</div>` : ''}
+            </div>`;
+        }
+
+        // fallback flat list when FotMob gives ratings but no pitch coordinates
+        function mmSideList(side, teamName) {
+            if (!side) return '';
+            const row = p => `<div class="mm-prow">
+                <span class="pp-sh">${p.shirt ?? ''}</span>
+                <span class="pp-n">${p.name || ''}${p.captain ? ' <span class="pp-ico">(C)</span>' : ''}${p.goals ? ' ' + '⚽'.repeat(Math.min(p.goals, 3)) : ''}${p.card ? ' ' + cardIco(p.card) : ''}${p.subOut ? ` <span class="pp-ico">▾${p.subOut}'</span>` : ''}</span>
+                ${rateChip(p.rating)}
+            </div>`;
+            const starters = (side.starters || []).slice().sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+            const playedSubs = (side.subs || []).filter(p => p.subIn != null || p.rating != null).sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+            return `<div class="mm-xi">
+                <div class="mm-xi-h">${mmHeadFlag(teamName)} ${side.name || teamName} ${side.formation ? `<span class="mm-form">${side.formation}</span>` : ''} ${ownerTag(teamName)} <span class="mm-trating">${rateChip(side.teamRating)}</span></div>
+                ${starters.map(row).join('')}
+                ${playedSubs.length ? `<div class="mm-subs-lbl">Subs used</div>${playedSubs.map(row).join('')}` : ''}
+                ${side.coach ? `<div class="mm-subs-lbl">Coach: ${side.coach}</div>` : ''}
+            </div>`;
+        }
+
+        function mmRatings(d) {
+            if (!d.lineups) return `<div class="mm-state">Lineups not announced yet — they appear about an hour before kickoff.</div>`;
+            const hasCoords = (d.lineups.home?.starters || []).some(p => p.x != null);
+            return hasCoords
+                ? mmPitch(d) + `<div class="mm-bench">${benchSide(d.lineups.home, ownerColor(d.home.name))}${benchSide(d.lineups.away, ownerColor(d.away.name))}</div>`
+                : mmSideList(d.lineups.home, d.home.name) + mmSideList(d.lineups.away, d.away.name);
+        }
+
+        function renderMatchModal() {
+            const body = document.getElementById('mmBody');
+            const d = mmData;
+            if (!d) { body.innerHTML = `<div class="mm-state">Loading match detail…</div>`; return; }
+            if (d.__error) { body.innerHTML = mmHeader(d.__head || {home:{},away:{}}) + `<div class="mm-state">${d.__error}</div>`; return; }
+            const hasRatings = !!d.lineups;
+            body.innerHTML = mmHeader(d)
+                + `<div class="mm-tabs">
+                       <button class="mm-tab ${mmTab==='summary'?'active':''}" data-mmtab="summary">Summary</button>
+                       <button class="mm-tab ${mmTab==='ratings'?'active':''}" data-mmtab="ratings">Ratings${hasRatings?'':' ·'}</button>
+                   </div>
+                   <div class="mm-pane">${mmTab === 'ratings' ? mmRatings(d) : mmSummary(d)}</div>`;
+            body.querySelectorAll('.mm-tab').forEach(b => b.onclick = () => { mmTab = b.dataset.mmtab; renderMatchModal(); });
+        }
+
+        function closeMatchModal() {
+            document.getElementById('matchModal').hidden = true;
+            document.body.style.overflow = '';
+            mmData = null;
+        }
+
+        async function openMatchModal(id, ev) {
+            mmTab = 'summary';
+            mmData = null;
+            // seed a header from the row we already have, so the modal isn't blank while loading
+            const head = ev ? { home: { name: ev.strHomeTeam, score: ev.intHomeScore }, away: { name: ev.strAwayTeam, score: ev.intAwayScore }, state: ev.state, statusLabel: ev.liveLabel } : null;
+            const modal = document.getElementById('matchModal');
+            modal.hidden = false;
+            document.body.style.overflow = 'hidden';
+            const body = document.getElementById('mmBody');
+            body.innerHTML = (head ? mmHeader(head) : '') + `<div class="mm-state">Loading match detail…</div>`;
+            try {
+                const r = await fetch(`${MATCH_URL}?id=${encodeURIComponent(id)}`, { cache: 'no-store' });
+                if (!r.ok) throw new Error(r.status);
+                const d = await r.json();
+                if (d.error) throw new Error(d.error);
+                if (document.getElementById('matchModal').hidden) return; // closed while loading
+                mmData = d;
+            } catch (e) {
+                mmData = { __error: 'Match detail isn’t available right now.', __head: head };
+            }
+            renderMatchModal();
+        }
+
+        // open on tapping any match row; close on backdrop / × / Esc
+        document.addEventListener('click', e => {
+            const row = e.target.closest('.match[data-mid]');
+            if (row) { const ev = (window.__FIX_BY_ID || {})[row.dataset.mid]; openMatchModal(row.dataset.mid, ev); }
+        });
+        document.getElementById('mmClose').onclick = closeMatchModal;
+        document.getElementById('matchModal').addEventListener('click', e => { if (e.target.id === 'matchModal') closeMatchModal(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('matchModal').hidden) closeMatchModal(); });
 
         // ---- boot ----
         document.getElementById('toFullOdds').onclick = () =>
