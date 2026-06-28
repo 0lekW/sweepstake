@@ -594,6 +594,45 @@
             .mm-bar .b-a { background: #64748b; margin-left: auto; }
             .mm-info { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.8rem; font-size: 0.8rem; color: var(--text-secondary); margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid var(--border-color); }
             .mm-info dt { color: var(--text-tertiary); font-family: var(--font-mono); font-size: 0.7rem; }
+
+            /* compact group-stage leaderboard strip ("for fun" standings, now winding down) */
+            .lb-strip-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.7rem; }
+            .lb-strip-head h2 { margin: 0; font-size: 1.05rem; font-family: var(--font-sans); font-weight: 600; }
+            .lb-final { font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); }
+            .lb-ended { font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); }
+            .lb-strip { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+            .lb-chip { display: inline-flex; align-items: center; gap: 0.45rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 99px; padding: 0.3rem 0.75rem; font-size: 0.85rem; }
+            .lb-chip.leader { border-color: color-mix(in srgb, #fcd34d 55%, var(--border-color)); }
+            .lb-chip.rowlive { border-color: color-mix(in srgb, var(--accent-success) 45%, var(--border-color)); }
+            .lb-chip .lc-rank { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-tertiary); }
+            .lb-chip .lc-name { font-weight: 600; }
+            .lb-chip .lc-pts { font-family: var(--font-mono); font-weight: 700; }
+            .lb-chip .lc-pts small { font-weight: 400; color: var(--text-tertiary); margin-left: 0.1rem; }
+
+            /* knockout bracket — compact left-to-right tree with connector lines,
+               sized to fit the widget width (no horizontal scroll), grows tall. */
+            .br-tree { position: relative; display: flex; gap: 0.45rem; align-items: stretch; }
+            .br-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: visible; }
+            .br-lines path { fill: none; stroke: color-mix(in srgb, var(--text-tertiary) 55%, transparent); stroke-width: 1.4; }
+            .br-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; position: relative; z-index: 1; }
+            .br-col-h { font-family: var(--font-mono); font-size: 0.54rem; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-tertiary); text-align: center; margin-bottom: 0.35rem; white-space: nowrap; }
+            .br-col-body { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 0.3rem; }
+            .br-m { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; transition: border-color 0.12s; }
+            .br-m.clickable { cursor: pointer; }
+            .br-m.clickable:hover { border-color: color-mix(in srgb, var(--accent-primary) 55%, var(--border-color)); }
+            .br-m.live { border-color: color-mix(in srgb, var(--accent-success) 55%, var(--border-color)); }
+            .br-side { display: flex; align-items: center; gap: 0.22rem; padding: 0.16rem 0.25rem; min-width: 0; }
+            .br-side + .br-side { border-top: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent); }
+            .br-side .flag { width: 14px; height: 10px; border-radius: 2px; flex: 0 0 auto; }
+            .br-side .br-dot { width: 0.32rem; height: 0.32rem; border-radius: 50%; flex: 0 0 auto; }
+            .br-side .br-tn { font-size: 0.62rem; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .br-side.tbd .br-tn { color: var(--text-tertiary); font-weight: 400; }
+            .br-side .br-sc { margin-left: auto; font-family: var(--font-mono); font-weight: 700; font-size: 0.64rem; flex: 0 0 auto; padding-left: 0.15rem; }
+            .br-side.win .br-tn { color: var(--text-primary); }
+            .br-side.lose { opacity: 0.42; }
+            .br-m.live .br-sc { color: var(--accent-success); }
+            .br-bronze { margin-top: 0.9rem; max-width: 11rem; }
+            .br-bronze-h { font-family: var(--font-mono); font-size: 0.54rem; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-tertiary); margin-bottom: 0.3rem; }
         </style>
     </head>
     <body>
@@ -647,9 +686,9 @@
 
                     <section class="panel">
                         <div class="panel-head">
-                            <h2>Group Stage Leaderboard <span id="formLive"></span></h2>
+                            <h2>Knockout Bracket <span id="bracketLive"></span></h2>
                         </div>
-                        <div class="board" id="formBoard"></div>
+                        <div id="bracket"></div>
                     </section>
                 </div>
 
@@ -682,6 +721,15 @@
                     <p class="blurb" id="oddsUpdated" style="margin-top:0.35rem;">Odds as of 12 Jun 2026.</p>
                 </div>
                 <div class="breakdown" id="oddsBoard"></div>
+            </section>
+
+            <section class="panel lb-strip-panel" style="margin-top:1.25rem;">
+                <div class="lb-strip-head">
+                    <h2>Group Stage Leaderboard</h2>
+                    <span id="formLive"></span>
+                    <span class="lb-ended">Group stage has ended</span>
+                </div>
+                <div class="lb-strip" id="formBoard"></div>
             </section>
             </div><!-- /view-dashboard -->
 
@@ -966,29 +1014,119 @@
         // ============================================================
         //  RENDER: form table (provisional — includes live as it stands)
         // ============================================================
+        const isGroupEv = ev => !!ev.strGroup || (Number(ev.intRound) >= 1 && Number(ev.intRound) <= 3);
         function renderForm() {
-            const liveOwners = liveOwnersSet();
-            const { rows } = formTable(resultsAsItStands());
+            // Group-stage table ONLY: knockout results must never change these standings,
+            // and "as it stands" should reflect live GROUP games only (gone once groups end).
+            const { rows } = formTable(resultsAsItStands().filter(isGroupEv));
             const anyPlayed = rows.some(r => r[1].P > 0);
+            const liveOwners = new Set();
+            for (const ev of (FIX.live || [])) {
+                if (!isGroupEv(ev)) continue;
+                const h = findTeam(ev.strHomeTeam), a = findTeam(ev.strAwayTeam);
+                if (h) liveOwners.add(h.owner); if (a) liveOwners.add(a.owner);
+            }
             const tag = document.getElementById('formLive');
-            if (tag) tag.innerHTML = liveOwners.size ? `<span class="asitstands"><span class="live-dot"></span>as it stands</span>` : '';
+            if (tag) tag.innerHTML = liveOwners.size
+                ? `<span class="asitstands"><span class="live-dot"></span>as it stands</span>`
+                : '';
             const board = document.getElementById('formBoard');
-            if (!anyPlayed) { board.innerHTML = `<div class="state-msg">No completed matches yet &mdash; check back once the action kicks off.</div>`; return; }
-
-            const max = Math.max(1, rows[0][1].pts);
+            if (!anyPlayed) { board.innerHTML = `<div class="br-empty">No completed matches yet.</div>`; return; }
             board.innerHTML = rows.map(([name,r],i) => {
                 const isLive = liveOwners.has(name);
-                return `
-                <div class="lb-row${i===0&&r.pts>0?' leader':''}${isLive?' rowlive':''}">
-                    <div class="lb-rank">${i+1}</div>
-                    <div class="lb-main">
-                        <div class="lb-name"><span class="dot" style="background:${PEOPLE[name]}"></span>${name}${i===0&&r.pts>0?' <span class="lead-pill">Leader</span>':''}${isLive?' <span class="live-pill"><span class="live-dot"></span>LIVE</span>':''}</div>
-                        <div class="lb-sub">${r.P} played &middot; ${r.W}W ${r.D}D ${r.L}L &middot; ${r.GF}:${r.GA} goals</div>
-                        <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${(r.pts/max*100).toFixed(0)}%;background:${PEOPLE[name]}"></div></div>
-                    </div>
-                    <div class="lb-figure">${r.pts}<small>pts</small></div>
-                </div>`;
+                const lead = i === 0 && r.pts > 0;
+                return `<span class="lb-chip${lead?' leader':''}${isLive?' rowlive':''}" title="${r.P} played &middot; ${r.W}W ${r.D}D ${r.L}L &middot; ${r.GF}:${r.GA} goals">
+                    <span class="lc-rank">${i+1}</span>
+                    <span class="dot" style="background:${PEOPLE[name]}"></span>
+                    <span class="lc-name">${name}</span>
+                    <span class="lc-pts">${r.pts}<small>pts</small></span>
+                </span>`;
             }).join('');
+        }
+
+        // ============================================================
+        //  RENDER: knockout bracket — compact left-to-right tree.
+        //  Boxes show flag + short code + score; SVG connector lines are drawn
+        //  between measured box centres so the tree fits the widget width at any size.
+        // ============================================================
+        let BRK = null;
+        function brSide(t, tbd, win, lose) {
+            const team = (!tbd && t && t.name) ? findTeam(t.name) : null;
+            const flag = team ? `<img class="flag" src="${flagUrl(team.code)}" alt="" loading="lazy">` : `<span class="flag"></span>`;
+            const owner = team ? `<span class="br-dot" style="background:${PEOPLE[team.owner]}"></span>` : '';
+            // decided teams: compact 3-letter code. Undecided slots: just "TBD" — the
+            // connector lines already make it obvious which tie each depends on.
+            const label = tbd ? 'TBD' : ((t && (t.short || t.name)) || 'TBD');
+            const full = (t && t.name) || 'TBD';
+            const score = (t && t.score != null) ? `<span class="br-sc">${t.score}</span>` : '';
+            return `<div class="br-side${tbd?' tbd':''}${win?' win':''}${lose?' lose':''}" title="${full}">${flag}${owner}<span class="br-tn">${label}</span>${score}</div>`;
+        }
+        function brMatchup(mu) {
+            if (!mu) return '';
+            const fin = mu.state === 'finished';
+            const hWin = fin && mu.home.winner, aWin = fin && mu.away.winner;
+            const cls = `br-m${mu.state==='live'?' live':''}${mu.matchId?' clickable':''}`;
+            const attr = mu.matchId ? ` data-mid="${mu.matchId}"` : '';
+            return `<div class="${cls}"${attr}>${brSide(mu.home, mu.tbd1, hWin, aWin)}${brSide(mu.away, mu.tbd2, aWin, hWin)}</div>`;
+        }
+        const brColName = n => n.replace('Round of ', 'R').replace('Quarter-finals', 'QF').replace('Semi-finals', 'SF');
+        function renderBracket() {
+            const el = document.getElementById('bracket');
+            if (!el) return;
+            if (!BRK || !Array.isArray(BRK.rounds) || !BRK.rounds.length) {
+                el.innerHTML = `<div class="br-empty">The knockout bracket appears once the group stage finishes.</div>`;
+                return;
+            }
+            const all = [...BRK.rounds.flatMap(r => r.matchups), BRK.bronze].filter(Boolean);
+            const liveN = all.filter(m => m.state === 'live').length;
+            const tag = document.getElementById('bracketLive');
+            if (tag) tag.innerHTML = liveN ? `<span class="asitstands"><span class="live-dot"></span>${liveN} live</span>` : '';
+            const cols = BRK.rounds.map(r =>
+                `<div class="br-col"><div class="br-col-h">${brColName(r.name)}</div><div class="br-col-body">${r.matchups.map(brMatchup).join('')}</div></div>`).join('');
+            let html = `<div class="br-tree"><svg class="br-lines" preserveAspectRatio="none"></svg>${cols}</div>`;
+            if (BRK.bronze) html += `<div class="br-bronze"><div class="br-bronze-h">Third place</div>${brMatchup(BRK.bronze)}</div>`;
+            el.innerHTML = html;
+            drawBracketLines();                       // sync: getBoundingClientRect forces layout
+            setTimeout(drawBracketLines, 200);        // safety once flags/fonts settle
+            ensureBracketObserver();
+        }
+        // draw elbow connectors from each match to its parent (child i -> parent ⌊i/2⌋)
+        function drawBracketLines() {
+            const tree = document.querySelector('.br-tree');
+            const svg = tree && tree.querySelector('.br-lines');
+            if (!tree || !svg || !tree.clientWidth) return; // skip while hidden / unsized
+            const W = tree.clientWidth, H = tree.clientHeight, tr = tree.getBoundingClientRect();
+            svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+            const cols = [...tree.querySelectorAll('.br-col')];
+            let d = '';
+            for (let c = 0; c < cols.length - 1; c++) {
+                const kids = [...cols[c].querySelectorAll('.br-m')];
+                const par = [...cols[c + 1].querySelectorAll('.br-m')];
+                kids.forEach((k, i) => {
+                    const p = par[Math.floor(i / 2)]; if (!p) return;
+                    const kb = k.getBoundingClientRect(), pb = p.getBoundingClientRect();
+                    const x1 = kb.right - tr.left, y1 = kb.top + kb.height / 2 - tr.top;
+                    const x2 = pb.left - tr.left, y2 = pb.top + pb.height / 2 - tr.top;
+                    const mx = (x1 + x2) / 2;
+                    d += `M${x1.toFixed(1)} ${y1.toFixed(1)}H${mx.toFixed(1)}V${y2.toFixed(1)}H${x2.toFixed(1)}`;
+                });
+            }
+            svg.innerHTML = d ? `<path d="${d}"/>` : '';
+        }
+        let _brRO, _brT;
+        function ensureBracketObserver() {
+            if (_brRO || !window.ResizeObserver) return;
+            const el = document.getElementById('bracket'); if (!el) return;
+            _brRO = new ResizeObserver(() => { clearTimeout(_brT); _brT = setTimeout(drawBracketLines, 80); });
+            _brRO.observe(el);
+        }
+        async function loadBracket() {
+            try {
+                const r = await fetch(BRACKET_URL, { cache: 'no-store' });
+                if (!r.ok) throw new Error(r.status);
+                BRK = await r.json();
+            } catch (e) { /* keep previous bracket on error */ }
+            renderBracket();
         }
 
         // ============================================================
@@ -1571,6 +1709,7 @@
 
         // Primary match source: homelab FotMob feed (status, score, live minute).
         const FIX_URL = 'https://odds.olek.co.nz/fixtures.json';
+        const BRACKET_URL = 'https://odds.olek.co.nz/bracket.json';
         let _finishedSig = null;
 
         // Render everything that depends on match data. History is only rebuilt when the
@@ -1616,7 +1755,7 @@
 
         // poll for live updates while the tab is visible (homelab itself polls FotMob faster when live)
         function startFixturesPolling() {
-            setInterval(() => { if (!document.hidden) loadFixtures(); }, 45000);
+            setInterval(() => { if (!document.hidden) { loadFixtures(); loadBracket(); } }, 45000);
         }
 
         // FALLBACK match source: TheSportsDB (used only if the homelab feed is down; no live support).
@@ -2007,7 +2146,7 @@
 
         // open on tapping any match row; close on backdrop / × / Esc
         document.addEventListener('click', e => {
-            const row = e.target.closest('.match[data-mid]');
+            const row = e.target.closest('[data-mid]'); // match rows + bracket cards
             if (row) { const ev = (window.__FIX_BY_ID || {})[row.dataset.mid]; openMatchModal(row.dataset.mid, ev); }
         });
         document.getElementById('mmClose').onclick = closeMatchModal;
@@ -2035,6 +2174,8 @@
         renderDraft();
         loadOdds();
         loadOddsHistory();
+        renderBracket();   // placeholder until the feed lands
+        loadBracket();
         // match data: homelab FotMob feed first; fall back to TheSportsDB if it's unreachable
         loadFixtures().then(ok => { if (!ok) return loadLive(); }).catch(err => {
             console.error(err);
